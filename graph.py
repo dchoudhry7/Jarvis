@@ -15,6 +15,8 @@ from langgraph.prebuilt import ToolNode
 
 from tools import add_todo, show_todos
 
+from langgraph.checkpoint.memory import MemorySaver  #MemorySaver
+
 load_dotenv()
 
 
@@ -103,4 +105,8 @@ graph_builder.add_edge(
     "chatbot"
 )
 
-graph = graph_builder.compile()
+memory = MemorySaver()
+
+graph = graph_builder.compile(
+    checkpointer=memory
+)

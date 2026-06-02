@@ -30,14 +30,16 @@ async def chat(
         request: Request,
         message: str = Form(...)
 ):
-
     result = graph.invoke(
         {
             "messages": [
-                HumanMessage(
-                    content=message
-                )
+                HumanMessage(content=message)
             ]
+        },
+        config={
+            "configurable": {
+                "thread_id": "user_1"
+            }
         }
     )
 
