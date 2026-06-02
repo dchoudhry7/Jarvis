@@ -1,18 +1,20 @@
 from langchain_core.tools import tool
 
-todos = []
+from database import conn, cursor
 
 
 @tool
 def add_todo(task: str) -> str:
     """
-    Add a task to the list of todos
-    :param task:
-    :return:
+    Add task to todo list.
     """
-    print("ADD TODO TOOL CALLED:", task)
 
-    todos.append(task)
+    cursor.execute(
+        "INSERT INTO todos(task) VALUES (?)",
+        (task,)
+    )
+
+    conn.commit()
 
     return f"Task added: {task}"
 
@@ -20,12 +22,19 @@ def add_todo(task: str) -> str:
 @tool
 def show_todos() -> str:
     """
-    Show the list of todos
-    :return:
+    Show all todo items.
     """
-    print("SHOW TODOS TOOL CALLED")
 
-    if not todos:
+    cursor.execute(
+        "SELECT task FROM todos"
+    )
+
+    rows = cursor.fetchall()
+
+    if not rows:
         return "Todo list is empty."
 
-    return "\n".join(todos)
+    return "\n".join(
+        row[0]
+        for row in rows
+    )
