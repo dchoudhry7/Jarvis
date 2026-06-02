@@ -13,9 +13,14 @@ from langgraph.graph.message import add_messages
 
 from langgraph.prebuilt import ToolNode
 
-from tools import add_todo, show_todos
+from tools import (
+    add_todo,
+    show_todos,
+    remember,
+    recall_memories
+)
 
-from langgraph.checkpoint.memory import MemorySaver  #MemorySaver
+from langgraph.checkpoint.memory import MemorySaver  # MemorySaver
 
 load_dotenv()
 
@@ -26,9 +31,10 @@ class AgentState(TypedDict):
 
 tools = [
     add_todo,
-    show_todos
+    show_todos,
+    remember,
+    recall_memories
 ]
-
 
 llm = ChatGroq(
     model="llama-3.3-70b-versatile",
@@ -39,20 +45,18 @@ llm_with_tools = llm.bind_tools(tools)
 
 
 def chatbot(state: AgentState):
-
     messages = [
-        SystemMessage(
-            content="""
-You are a todo assistant.
-
-Rules:
-1. Use add_todo only when user wants to add a task.
-2. Use show_todos only when user wants to view tasks.
-3. After receiving tool output, answer the user directly.
-4. Never call a tool twice for the same request.
-"""
-        )
-    ] + state["messages"]
+                   SystemMessage(
+                       content="""
+                                You are Jarvis.
+                                Rules:
+                                1. If user says "remember" or asks you to store information, use remember tool.
+                                2. If user asks about stored information, use recall_memories tool.
+                                3. Use todo tools only for todo operations.
+                                4. Never invent memories.
+                                """
+                   )
+               ] + state["messages"]
 
     response = llm_with_tools.invoke(messages)
 
@@ -65,7 +69,6 @@ tool_node = ToolNode(tools)
 
 
 def should_continue(state: AgentState):
-
     last_message = state["messages"][-1]
 
     print("\n========== ROUTER ==========")

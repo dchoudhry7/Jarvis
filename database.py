@@ -8,9 +8,9 @@ conn = sqlite3.connect(
 cursor = conn.cursor()
 
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS todos(
+CREATE TABLE IF NOT EXISTS memories(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task TEXT NOT NULL
+    memory TEXT NOT NULL
 )
 """)
 
