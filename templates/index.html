@@ -1,47 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Jarvis V1</title>
+    <title>Jarvis AI</title>
 </head>
 <body>
 
-<h1>Jarvis V1</h1>
+<h1>Jarvis AI</h1>
 
-<input
+<form action="/chat" method="post">
+
+    <input
         type="text"
-        id="message"
-        placeholder="Type a message..."
->
+        name="message"
+        placeholder="Type message"
+        required
+    >
 
-<button onclick="sendMessage()">
-    Send
-</button>
+    <button type="submit">
+        Send
+    </button>
 
+</form>
+
+{% if response %}
 <hr>
-
-<div id="response"></div>
-
-<script>
-    async function sendMessage() {
-
-        const message =
-            document.getElementById("message").value;
-
-        const formData = new FormData();
-
-        formData.append("message", message);
-
-        const response = await fetch("/chat", {
-            method: "POST",
-            body: formData
-        });
-
-        const data = await response.json();
-
-        document.getElementById("response").innerHTML =
-            "<b>Grok:</b> " + data.response;
-    }
-</script>
+<h3>Response:</h3>
+<p>{{ response }}</p>
+{% endif %}
 
 </body>
 </html>

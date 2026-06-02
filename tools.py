@@ -1,10 +1,26 @@
 from langchain_core.tools import tool
 
+todos = []
+
 
 @tool
 def add_todo(task: str) -> str:
     """
-    Add task to todo list.
+    Add a task to todo list.
     """
 
-    return f"Task added: {task}"
+    todos.append(task)
+
+    return f"Added task: {task}"
+
+
+@tool
+def show_todos() -> str:
+    """
+    Show all todo items.
+    """
+
+    if not todos:
+        return "Todo list is empty."
+
+    return "\n".join(todos)

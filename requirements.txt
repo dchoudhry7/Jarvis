@@ -3,7 +3,9 @@ uvicorn
 jinja2
 python-dotenv
 python-multipart
+
 langgraph
+langchain
 langchain-core
+
 langchain-groq
-typing-extensions

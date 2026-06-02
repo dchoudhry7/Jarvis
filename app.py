@@ -1,4 +1,7 @@
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI
+from fastapi import Request
+from fastapi import Form
+
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -8,28 +11,42 @@ from graph import graph
 
 app = FastAPI()
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(
+    directory="templates"
+)
 
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
+
     return templates.TemplateResponse(
         request=request,
         name="index.html"
     )
 
 
-@app.post("/chat")
-async def chat(message: str = Form(...)):
+@app.post("/chat", response_class=HTMLResponse)
+async def chat(
+        request: Request,
+        message: str = Form(...)
+):
 
     result = graph.invoke(
         {
             "messages": [
-                HumanMessage(content=message)
+                HumanMessage(
+                    content=message
+                )
             ]
         }
     )
 
-    return {
-        "response": result["messages"][-1].content
-    }
+    response = result["messages"][-1].content
+
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={
+            "response": response
+        }
+    )
