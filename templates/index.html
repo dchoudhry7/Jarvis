@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jarvis V1</title>
+</head>
+<body>
+
+<h1>Jarvis V1</h1>
+
+<input
+        type="text"
+        id="message"
+        placeholder="Type a message..."
+>
+
+<button onclick="sendMessage()">
+    Send
+</button>
+
+<hr>
+
+<div id="response"></div>
+
+<script>
+    async function sendMessage() {
+
+        const message =
+            document.getElementById("message").value;
+
+        const formData = new FormData();
+
+        formData.append("message", message);
+
+        const response = await fetch("/chat", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        document.getElementById("response").innerHTML =
+            "<b>Grok:</b> " + data.response;
+    }
+</script>
+
+</body>
+</html>
