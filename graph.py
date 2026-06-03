@@ -7,11 +7,11 @@ from typing_extensions import TypedDict
 
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage
-from langgraph.graph import StateGraph
-from langgraph.graph import END
-from langgraph.graph.message import add_messages
 
+from langgraph.graph import StateGraph, END
+from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
+from langgraph.checkpoint.memory import MemorySaver
 
 from tools import (
     add_todo,
@@ -20,13 +20,12 @@ from tools import (
     recall_memories
 )
 
-from langgraph.checkpoint.memory import MemorySaver  # MemorySaver
-
 load_dotenv()
 
 
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
+    route: str
 
 
 tools = [
@@ -36,6 +35,7 @@ tools = [
     recall_memories
 ]
 
+
 llm = ChatGroq(
     model="llama-3.3-70b-versatile",
     api_key=os.getenv("GROQ_API_KEY")
@@ -44,21 +44,81 @@ llm = ChatGroq(
 llm_with_tools = llm.bind_tools(tools)
 
 
-def chatbot(state: AgentState):
+def supervisor(state: AgentState):
+
+    user_message = state["messages"][-1].content.lower()
+
+    if any(word in user_message for word in [
+        "todo",
+        "task",
+        "add task",
+        "show task"
+    ]):
+        route = "todo"
+
+    elif any(word in user_message for word in [
+        "remember",
+        "memory",
+        "recall"
+    ]):
+        route = "memory"
+
+    else:
+        route = "chat"
+
+    print(f"\nSUPERVISOR ROUTED TO: {route}")
+
+    return {
+        "route": route
+    }
+
+
+def todo_agent(state: AgentState):
+
+    print("todo_agent called")
+
     messages = [
-                   SystemMessage(
-                       content="""
-                                You are Jarvis.
-                                Rules:
-                                1. If user says "remember" or asks you to store information, use remember tool.
-                                2. If user asks about stored information, use recall_memories tool.
-                                3. Use todo tools only for todo operations.
-                                4. Never invent memories.
-                                """
-                   )
-               ] + state["messages"]
+        SystemMessage(
+            content="""
+            You manage todo tasks.
+            Use todo tools whenever needed.
+            """
+        )
+    ] + state["messages"]
 
     response = llm_with_tools.invoke(messages)
+
+    return {
+        "messages": [response]
+    }
+
+
+def memory_agent(state: AgentState):
+
+    print("memory_agent called")
+
+    messages = [
+        SystemMessage(
+            content="""
+            You manage memories.
+            Use remember and recall_memories tools.
+            Never invent memories.
+            """
+        )
+    ] + state["messages"]
+
+    response = llm_with_tools.invoke(messages)
+
+    return {
+        "messages": [response]
+    }
+
+
+def chat_agent(state: AgentState):
+
+    print("chat_agent called")
+
+    response = llm.invoke(state["messages"])
 
     return {
         "messages": [response]
@@ -68,13 +128,18 @@ def chatbot(state: AgentState):
 tool_node = ToolNode(tools)
 
 
+def route_agent(state: AgentState):
+    return state["route"]
+
+
 def should_continue(state: AgentState):
+
     last_message = state["messages"][-1]
 
     print("\n========== ROUTER ==========")
     print(last_message)
 
-    if last_message.tool_calls:
+    if getattr(last_message, "tool_calls", None):
         print("GO TO TOOLS")
         return "tools"
 
@@ -85,8 +150,23 @@ def should_continue(state: AgentState):
 graph_builder = StateGraph(AgentState)
 
 graph_builder.add_node(
-    "chatbot",
-    chatbot
+    "supervisor",
+    supervisor
+)
+
+graph_builder.add_node(
+    "todo_agent",
+    todo_agent
+)
+
+graph_builder.add_node(
+    "memory_agent",
+    memory_agent
+)
+
+graph_builder.add_node(
+    "chat_agent",
+    chat_agent
 )
 
 graph_builder.add_node(
@@ -95,17 +175,42 @@ graph_builder.add_node(
 )
 
 graph_builder.set_entry_point(
-    "chatbot"
+    "supervisor"
 )
 
 graph_builder.add_conditional_edges(
-    "chatbot",
+    "supervisor",
+    route_agent,
+    {
+        "todo": "todo_agent",
+        "memory": "memory_agent",
+        "chat": "chat_agent"
+    }
+)
+
+graph_builder.add_conditional_edges(
+    "todo_agent",
+    should_continue
+)
+
+graph_builder.add_conditional_edges(
+    "memory_agent",
     should_continue
 )
 
 graph_builder.add_edge(
     "tools",
-    "chatbot"
+    "memory_agent"
+)
+
+graph_builder.add_edge(
+    "tools",
+    "todo_agent"
+)
+
+graph_builder.add_edge(
+    "chat_agent",
+    END
 )
 
 memory = MemorySaver()
