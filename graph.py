@@ -28,9 +28,12 @@ class AgentState(TypedDict):
     route: str
 
 
-tools = [
+todo_tools = [
     add_todo,
-    show_todos,
+    show_todos
+]
+
+memory_tools = [
     remember,
     recall_memories
 ]
@@ -41,7 +44,9 @@ llm = ChatGroq(
     api_key=os.getenv("GROQ_API_KEY")
 )
 
-llm_with_tools = llm.bind_tools(tools)
+todo_llm = llm.bind_tools(todo_tools)
+
+memory_llm = llm.bind_tools(memory_tools)
 
 
 def supervisor(state: AgentState):
@@ -86,7 +91,7 @@ def todo_agent(state: AgentState):
         )
     ] + state["messages"]
 
-    response = llm_with_tools.invoke(messages)
+    response = todo_llm.invoke(messages)
 
     return {
         "messages": [response]
@@ -107,7 +112,7 @@ def memory_agent(state: AgentState):
         )
     ] + state["messages"]
 
-    response = llm_with_tools.invoke(messages)
+    response = memory_llm.invoke(messages)
 
     return {
         "messages": [response]
@@ -125,29 +130,45 @@ def chat_agent(state: AgentState):
     }
 
 
-tool_node = ToolNode(tools)
+todo_tool_node = ToolNode(todo_tools)
+
+memory_tool_node = ToolNode(memory_tools)
 
 
 def route_agent(state: AgentState):
     return state["route"]
 
 
-def should_continue(state: AgentState):
+def todo_router(state: AgentState):
 
     last_message = state["messages"][-1]
 
-    print("\n========== ROUTER ==========")
-    print(last_message)
+    print("\nTODO ROUTER")
 
     if getattr(last_message, "tool_calls", None):
-        print("GO TO TOOLS")
-        return "tools"
+        print("GO TO TODO TOOLS")
+        return "todo_tools"
 
-    print("END GRAPH")
+    print("END")
+    return END
+
+
+def memory_router(state: AgentState):
+
+    last_message = state["messages"][-1]
+
+    print("\nMEMORY ROUTER")
+
+    if getattr(last_message, "tool_calls", None):
+        print("GO TO MEMORY TOOLS")
+        return "memory_tools"
+
+    print("END")
     return END
 
 
 graph_builder = StateGraph(AgentState)
+
 
 graph_builder.add_node(
     "supervisor",
@@ -170,13 +191,20 @@ graph_builder.add_node(
 )
 
 graph_builder.add_node(
-    "tools",
-    tool_node
+    "todo_tools",
+    todo_tool_node
 )
+
+graph_builder.add_node(
+    "memory_tools",
+    memory_tool_node
+)
+
 
 graph_builder.set_entry_point(
     "supervisor"
 )
+
 
 graph_builder.add_conditional_edges(
     "supervisor",
@@ -188,24 +216,34 @@ graph_builder.add_conditional_edges(
     }
 )
 
+
 graph_builder.add_conditional_edges(
     "todo_agent",
-    should_continue
+    todo_router,
+    {
+        "todo_tools": "todo_tools",
+        END: END
+    }
 )
 
 graph_builder.add_conditional_edges(
     "memory_agent",
-    should_continue
+    memory_router,
+    {
+        "memory_tools": "memory_tools",
+        END: END
+    }
 )
 
-graph_builder.add_edge(
-    "tools",
-    "memory_agent"
-)
 
 graph_builder.add_edge(
-    "tools",
+    "todo_tools",
     "todo_agent"
+)
+
+graph_builder.add_edge(
+    "memory_tools",
+    "memory_agent"
 )
 
 graph_builder.add_edge(
@@ -213,18 +251,21 @@ graph_builder.add_edge(
     END
 )
 
+
 memory = MemorySaver()
 
 graph = graph_builder.compile(
     checkpointer=memory
 )
-mermaid = graph.get_graph().draw_mermaid()
 
-print(mermaid)
 
-png = graph.get_graph().draw_mermaid_png()
+if __name__ == "__main__":
 
-with open("graph.png", "wb") as f:
-    f.write(png)
+    print(graph.get_graph().draw_mermaid())
 
-print("Saved graph.png")
+    png = graph.get_graph().draw_mermaid_png()
+
+    with open("graph.png", "wb") as f:
+        f.write(png)
+
+    print("graph.png saved")
