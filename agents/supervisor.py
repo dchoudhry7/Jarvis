@@ -22,6 +22,13 @@ def supervisor(state):
         "draft"
     ]):
         route = "email"
+    elif any(word in user_message for word in [
+        "calendar",
+        "meeting",
+        "schedule",
+        "event"
+    ]):
+        route = "calendar"
     else:
         route = "chat"
 

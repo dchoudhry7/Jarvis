@@ -29,6 +29,10 @@ from agents.email_agent import (
     email_agent
 )
 
+from agents import (
+    calendar_agent
+)
+
 from routers.todo_router import (
     todo_router
 )
@@ -39,6 +43,10 @@ from routers.memory_router import (
 
 from routers.email_router import (
     email_router
+)
+
+from routers import (
+    calendar_router
 )
 
 from tools.todo_tools import (
@@ -56,6 +64,13 @@ from tools.email_tools import (
     show_email_drafts,
     delete_email_draft,
     delete_all_email_drafts
+)
+
+from tools.calendar_tools import (
+    create_event,
+    show_events,
+    delete_event,
+    delete_all_events
 )
 
 
@@ -79,6 +94,15 @@ email_tool_node = ToolNode(
         show_email_drafts,
         delete_email_draft,
         delete_all_email_drafts
+    ]
+)
+
+calendar_tool_node = ToolNode(
+    [
+        create_event,
+        show_events,
+        delete_event,
+        delete_all_events
     ]
 )
 
@@ -127,6 +151,16 @@ graph_builder.add_node(
     email_tool_node
 )
 
+graph_builder.add_node(
+    "calendar_agent",
+    calendar_agent
+)
+
+graph_builder.add_node(
+    "calendar_tools",
+    calendar_tool_node
+)
+
 
 graph_builder.set_entry_point(
     "supervisor"
@@ -140,7 +174,8 @@ graph_builder.add_conditional_edges(
         "todo": "todo_agent",
         "memory": "memory_agent",
         "chat": "chat_agent",
-        "email": "email_agent"
+        "email": "email_agent",
+        "calendar": "calendar_agent"
     }
 )
 
@@ -172,6 +207,15 @@ graph_builder.add_conditional_edges(
     }
 )
 
+graph_builder.add_conditional_edges(
+    "calendar_agent",
+    calendar_router,
+    {
+        "calendar_tools": "calendar_tools",
+        END: END
+    }
+)
+
 
 graph_builder.add_edge(
     "todo_tools",
@@ -186,6 +230,11 @@ graph_builder.add_edge(
 graph_builder.add_edge(
     "email_tools",
     "email_agent"
+)
+
+graph_builder.add_edge(
+    "calendar_tools",
+    "calendar_agent"
 )
 
 graph_builder.add_edge(
