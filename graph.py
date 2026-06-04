@@ -29,7 +29,7 @@ from agents.email_agent import (
     email_agent
 )
 
-from agents import (
+from agents.calendar_agent import (
     calendar_agent
 )
 
@@ -45,7 +45,7 @@ from routers.email_router import (
     email_router
 )
 
-from routers import (
+from routers.calendar_router import (
     calendar_router
 )
 
