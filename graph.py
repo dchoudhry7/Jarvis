@@ -25,12 +25,20 @@ from agents.memory_agent import (
     memory_agent
 )
 
+from agents.email_agent import (
+    email_agent
+)
+
 from routers.todo_router import (
     todo_router
 )
 
 from routers.memory_router import (
     memory_router
+)
+
+from routers.email_router import (
+    email_router
 )
 
 from tools.todo_tools import (
@@ -41,6 +49,13 @@ from tools.todo_tools import (
 from tools.memory_tools import (
     remember,
     recall_memories
+)
+
+from tools.email_tools import (
+    draft_email,
+    show_email_drafts,
+    delete_email_draft,
+    delete_all_email_drafts
 )
 
 
@@ -58,6 +73,14 @@ memory_tool_node = ToolNode(
     ]
 )
 
+email_tool_node = ToolNode(
+    [
+        draft_email,
+        show_email_drafts,
+        delete_email_draft,
+        delete_all_email_drafts
+    ]
+)
 
 graph_builder = StateGraph(
     AgentState
@@ -94,6 +117,16 @@ graph_builder.add_node(
     memory_tool_node
 )
 
+graph_builder.add_node(
+    "email_agent",
+    email_agent
+)
+
+graph_builder.add_node(
+    "email_tools",
+    email_tool_node
+)
+
 
 graph_builder.set_entry_point(
     "supervisor"
@@ -106,7 +139,8 @@ graph_builder.add_conditional_edges(
     {
         "todo": "todo_agent",
         "memory": "memory_agent",
-        "chat": "chat_agent"
+        "chat": "chat_agent",
+        "email": "email_agent"
     }
 )
 
@@ -129,6 +163,15 @@ graph_builder.add_conditional_edges(
     }
 )
 
+graph_builder.add_conditional_edges(
+    "email_agent",
+    email_router,
+    {
+        "email_tools": "email_tools",
+        END: END
+    }
+)
+
 
 graph_builder.add_edge(
     "todo_tools",
@@ -138,6 +181,11 @@ graph_builder.add_edge(
 graph_builder.add_edge(
     "memory_tools",
     "memory_agent"
+)
+
+graph_builder.add_edge(
+    "email_tools",
+    "email_agent"
 )
 
 graph_builder.add_edge(

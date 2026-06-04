@@ -16,7 +16,12 @@ def supervisor(state):
         "recall"
     ]):
         route = "memory"
-
+    elif any(word in user_message for word in [
+        "email",
+        "mail",
+        "draft"
+    ]):
+        route = "email"
     else:
         route = "chat"
 
