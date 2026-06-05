@@ -29,6 +29,13 @@ def supervisor(state):
         "event"
     ]):
         route = "calendar"
+    elif any(word in user_message for word in [
+        "playlist",
+        "song",
+        "music",
+        "spotify"
+    ]):
+        route = "spotify"
     else:
         route = "chat"
 

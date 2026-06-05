@@ -33,6 +33,10 @@ from agents.calendar_agent import (
     calendar_agent
 )
 
+from agents.spotify_agent import (
+    spotify_agent
+)
+
 from routers.todo_router import (
     todo_router
 )
@@ -47,6 +51,10 @@ from routers.email_router import (
 
 from routers.calendar_router import (
     calendar_router
+)
+
+from routers.spotify_router import (
+    spotify_router
 )
 
 from tools.todo_tools import (
@@ -71,6 +79,13 @@ from tools.calendar_tools import (
     show_events,
     delete_event,
     delete_all_events
+)
+
+from tools.spotify_tools import (
+    add_song_to_playlist,
+    show_playlists,
+    remove_song_from_playlist,
+    delete_playlist
 )
 
 
@@ -106,6 +121,16 @@ calendar_tool_node = ToolNode(
     ]
 )
 
+spotify_tool_node = ToolNode(
+    [
+        add_song_to_playlist,
+        show_playlists,
+        remove_song_from_playlist,
+        delete_playlist
+    ]
+)
+
+
 graph_builder = StateGraph(
     AgentState
 )
@@ -117,23 +142,23 @@ graph_builder.add_node(
 )
 
 graph_builder.add_node(
-    "todo_agent",
-    todo_agent
-)
-
-graph_builder.add_node(
-    "memory_agent",
-    memory_agent
-)
-
-graph_builder.add_node(
     "chat_agent",
     chat_agent
 )
 
 graph_builder.add_node(
+    "todo_agent",
+    todo_agent
+)
+
+graph_builder.add_node(
     "todo_tools",
     todo_tool_node
+)
+
+graph_builder.add_node(
+    "memory_agent",
+    memory_agent
 )
 
 graph_builder.add_node(
@@ -161,6 +186,16 @@ graph_builder.add_node(
     calendar_tool_node
 )
 
+graph_builder.add_node(
+    "spotify_agent",
+    spotify_agent
+)
+
+graph_builder.add_node(
+    "spotify_tools",
+    spotify_tool_node
+)
+
 
 graph_builder.set_entry_point(
     "supervisor"
@@ -175,7 +210,8 @@ graph_builder.add_conditional_edges(
         "memory": "memory_agent",
         "chat": "chat_agent",
         "email": "email_agent",
-        "calendar": "calendar_agent"
+        "calendar": "calendar_agent",
+        "spotify": "spotify_agent"
     }
 )
 
@@ -216,6 +252,15 @@ graph_builder.add_conditional_edges(
     }
 )
 
+graph_builder.add_conditional_edges(
+    "spotify_agent",
+    spotify_router,
+    {
+        "spotify_tools": "spotify_tools",
+        END: END
+    }
+)
+
 
 graph_builder.add_edge(
     "todo_tools",
@@ -235,6 +280,11 @@ graph_builder.add_edge(
 graph_builder.add_edge(
     "calendar_tools",
     "calendar_agent"
+)
+
+graph_builder.add_edge(
+    "spotify_tools",
+    "spotify_agent"
 )
 
 graph_builder.add_edge(
