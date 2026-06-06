@@ -26,11 +26,11 @@ chat_tab, todo_tab, email_tab, calendar_tab, spotify_tab = st.tabs(
     ]
 )
 
-if st.button("🗑️ Clear Chat"):
-    st.session_state.chat_history = []
-    st.rerun()
-
 with chat_tab:
+    if st.button("🗑️ Clear Chat"):
+        st.session_state.chat_history = []
+        st.rerun()
+
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
@@ -46,13 +46,9 @@ with chat_tab:
     )
 
     if user_input:
-
         st.session_state.chat_history.append(
             ("user", user_input)
         )
-
-        with st.chat_message("user"):
-            st.markdown(user_input)
 
         result = graph.invoke(
             {
@@ -75,8 +71,7 @@ with chat_tab:
             ("assistant", response)
         )
 
-        with st.chat_message("assistant"):
-            st.markdown(response)
+        st.rerun()
 
 with todo_tab:
 
@@ -209,10 +204,19 @@ with calendar_tab:
                     }
                 )
 
-            st.dataframe(
-                calendar_data,
-                use_container_width=True
-            )
+            for event in events:
+                with st.container():
+                    st.markdown(
+                        f"""
+            ### 📅 {event['title']}
+
+            **Date:** {event['date']}
+
+            **Time:** {event['time']}
+            """
+                    )
+
+                    st.markdown("---")
 
         else:
 
@@ -224,4 +228,65 @@ with calendar_tab:
 
         st.warning(
             "calendar.json not found."
+        )
+
+with spotify_tab:
+
+    st.subheader("Spotify Playlists")
+
+    PLAYLIST_FILE = Path(
+        "data/playlists.json"
+    )
+
+    if PLAYLIST_FILE.exists():
+
+        with open(
+            PLAYLIST_FILE,
+            "r"
+        ) as f:
+
+            playlists = json.load(f)
+
+        if playlists:
+
+            for playlist in playlists:
+
+                playlist_name = playlist.get(
+                    "name",
+                    "Unnamed Playlist"
+                )
+
+                songs = playlist.get(
+                    "songs",
+                    []
+                )
+
+                with st.expander(
+                    f"🎵 {playlist_name}"
+                ):
+
+                    if songs:
+
+                        for song in songs:
+
+                            st.write(
+                                f"• {song}"
+                            )
+
+                    else:
+
+                        st.info(
+                            "No songs found."
+                        )
+
+        else:
+
+            st.info(
+                "No playlists found."
+            )
+
+    else:
+
+        st.warning(
+            "playlists.json not found."
         )
