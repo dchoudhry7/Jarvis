@@ -8,13 +8,80 @@ from langchain_core.messages import HumanMessage
 from graph import graph
 
 
+def load_json(file_path):
+
+    path = Path(file_path)
+
+    if not path.exists():
+        return []
+
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+
+    except:
+        return []
+
 st.set_page_config(
     page_title="Jarvis AI",
     page_icon="🤖",
     layout="wide"
 )
 
-st.title("🤖 Jarvis AI Assistant")
+st.title("🤖 Jarvis")
+
+st.caption(
+    "Multi-Agent Personal Assistant powered by LangGraph"
+)
+
+todos = load_json(
+    "data/todos.json"
+)
+
+emails = load_json(
+    "data/email_drafts.json"
+)
+
+events = load_json(
+    "data/calendar.json"
+)
+
+playlists = load_json(
+    "data/playlists.json"
+)
+
+
+col1, col2, col3, col4, col5 = st.columns(5)
+
+with col1:
+    st.metric(
+        "Agents",
+        "6"
+    )
+
+with col2:
+    st.metric(
+        "Todos",
+        len(todos)
+    )
+
+with col3:
+    st.metric(
+        "Emails",
+        len(emails)
+    )
+
+with col4:
+    st.metric(
+        "Events",
+        len(events)
+    )
+
+with col5:
+    st.metric(
+        "Playlists",
+        len(playlists)
+    )
 
 chat_tab, todo_tab, email_tab, calendar_tab, spotify_tab = st.tabs(
     [
