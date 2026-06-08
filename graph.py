@@ -71,7 +71,9 @@ from tools.email_tools import (
     draft_email,
     show_email_drafts,
     delete_email_draft,
-    delete_all_email_drafts
+    delete_all_email_drafts,
+    send_email,
+    send_pending_email
 )
 
 from tools.calendar_tools import (
@@ -108,7 +110,9 @@ email_tool_node = ToolNode(
         draft_email,
         show_email_drafts,
         delete_email_draft,
-        delete_all_email_drafts
+        delete_all_email_drafts,
+        send_email,
+        send_pending_email
     ]
 )
 

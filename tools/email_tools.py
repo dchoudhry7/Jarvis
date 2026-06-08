@@ -1,10 +1,23 @@
 import json
+import base64
+
 from pathlib import Path
 
 from langchain_core.tools import tool
 
 from config import llm
 
+from email.mime.text import MIMEText
+
+from services.gmail_service import (
+    get_gmail_service
+)
+
+from utils.pending_mail import (
+    save_pending_email,
+    clear_pending_email,
+    load_pending_email
+)
 
 DRAFT_FILE = Path("data/email_drafts.json")
 
@@ -55,6 +68,12 @@ def draft_email(
     """
 
     email_text = llm.invoke(prompt).content
+
+    save_pending_email(
+        recipient,
+        subject,
+        email_text
+    )
 
     with open(DRAFT_FILE, "r") as f:
         drafts = json.load(f)
@@ -179,3 +198,87 @@ def delete_all_email_drafts():
         json.dump([], f, indent=4)
 
     return "All email drafts deleted successfully."
+
+@tool
+def send_email(
+    recipient: str,
+    subject: str,
+    body: str
+):
+    """
+    Send the most recently drafted email.
+
+    Use this tool when the user confirms that a draft
+    should be sent.
+
+    Examples:
+    - send it
+    - send this email
+    - send this mail
+    - yes
+    - yes send it
+    - approve
+    - go ahead
+
+    Do not use this tool unless a draft already exists.
+    """
+
+    service = get_gmail_service()
+
+    message = MIMEText(body)
+
+    message["to"] = recipient
+    message["subject"] = subject
+
+    raw_message = base64.urlsafe_b64encode(
+        message.as_bytes()
+    ).decode()
+
+    service.users().messages().send(
+        userId="me",
+        body={
+            "raw": raw_message
+        }
+    ).execute()
+
+    return (
+        f"Email sent successfully to "
+        f"{recipient}"
+    )
+
+@tool
+def send_pending_email():
+    """
+    Send the most recently drafted email.
+
+    IMPORTANT:
+    After this tool executes successfully,
+    the email has already been sent.
+
+    Do NOT call this tool again.
+
+    Use only when the user explicitly confirms:
+    - yes
+    - send it
+    - send this email
+    - approve
+
+    After successful execution, the task is complete.
+    """
+
+    email = load_pending_email()
+
+    if not email:
+        return "No pending email found."
+
+    send_email.invoke(
+        {
+            "recipient": email["recipient"],
+            "subject": email["subject"],
+            "body": email["body"]
+        }
+    )
+
+    clear_pending_email()
+
+    return "Email sent successfully."

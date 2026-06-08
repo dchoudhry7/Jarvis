@@ -2,14 +2,16 @@ from langchain_core.messages import SystemMessage
 
 from config import llm
 
-from tools.email_tools import draft_email, show_email_drafts, delete_email_draft, delete_all_email_drafts
+from tools.email_tools import draft_email, show_email_drafts, delete_email_draft, delete_all_email_drafts, send_email, send_pending_email
 
 email_llm = llm.bind_tools(
     [
         draft_email,
         show_email_drafts,
         delete_email_draft,
-        delete_all_email_drafts
+        delete_all_email_drafts,
+        send_email,
+        send_pending_email
     ]
 )
 
@@ -19,34 +21,43 @@ def email_agent(state):
     print("email_agent called")
 
     messages = [
-       SystemMessage(
-           content="""
-        You are an Email Management Agent.
+        SystemMessage(
+            content="""
+       You are an Email Management Agent.
 
-        Available tools:
+       Available tools:
 
-        1. draft_email
-           - Creates and saves a new email draft.
-           - Use when the user wants to write, draft, compose, create, or generate an email.
+       1. draft_email
+          - Create an email draft.
 
-        2. show_email_drafts
-           - Shows all saved email drafts.
-           - Use when the user wants to view, list, check, or see drafts.
+       2. send_pending_email
+          - Send the most recently drafted email.
 
-        3. delete_email_draft
-           - Deletes one specific draft.
-           - Use only when the user clearly specifies which draft to delete.
+       3. show_email_drafts
+          - Show saved drafts.
 
-        4. delete_all_email_drafts
-           - Deletes every saved draft.
-           - Use only when the user explicitly requests removing all drafts.
+       4. delete_email_draft
+          - Delete one draft.
 
-        Rules:
-        - Never delete drafts unless the user explicitly asks.
-        - Never create multiple drafts unless requested.
-        - After a tool completes successfully, summarize the result and stop.
-        - If required information is missing, ask the user for clarification.
-        """
+       5. delete_all_email_drafts
+          - Delete all drafts.
+
+       Rules:
+
+       - You ARE capable of sending emails.
+       - Never claim that you cannot send emails.
+       - When a user says:
+         - send it
+         - send this email
+         - send this mail
+         - yes send it
+         - approve
+         then use send_pending_email.
+
+       - After an email is drafted, ask for confirmation.
+
+       - Once the user confirms, send the pending email.
+       """
         )
     ] + state["messages"]
 
