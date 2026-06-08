@@ -16,7 +16,31 @@ def draft_email(
     purpose: str
 ):
     """
-    Draft and save an email.
+    Create and save a new email draft.
+
+    Args:
+        recipient: Person or organization receiving the email.
+        subject: Email subject line.
+        purpose: Reason for the email. This will be used to generate the content.
+
+    Use this tool when the user wants to:
+    - draft an email
+    - write an email
+    - compose an email
+    - create an email
+    - generate an email
+
+    Required inputs:
+    - recipient
+    - subject
+    - purpose
+
+    Do not use this tool for:
+    - viewing drafts
+    - deleting drafts
+
+    After creating the draft successfully, do not call this tool again
+    unless the user requests another draft.
     """
 
     prompt = f"""
@@ -59,7 +83,16 @@ Subject: {subject}
 @tool
 def show_email_drafts():
     """
-    Show all drafts.
+    Display all saved email drafts.
+
+    Use this tool when the user wants to:
+    - see drafts
+    - list drafts
+    - show drafts
+    - view drafts
+    - check saved emails
+
+    Do not use this tool for creating or deleting drafts.
     """
     with open(DRAFT_FILE, "r") as f:
         drafts = json.load(f)
@@ -89,7 +122,19 @@ Content:
 @tool
 def delete_email_draft(draft_id: int):
     """
-    Delete a specific email draft by its ID.
+    Delete a specific email draft.
+
+    Use this tool only when the user wants to remove
+    one particular draft and provides the draft ID.
+
+    Examples:
+    - Delete draft 2
+    - Remove draft number 5
+
+    Do not use this tool for:
+    - deleting all drafts
+    - creating drafts
+    - viewing drafts
     """
 
     with open(DRAFT_FILE, "r") as f:
@@ -117,7 +162,17 @@ def delete_email_draft(draft_id: int):
 @tool
 def delete_all_email_drafts():
     """
-    Delete all saved email drafts.
+    Delete every saved email draft.
+
+    Use this tool only when the user explicitly asks to:
+    - delete all drafts
+    - remove all drafts
+    - clear all drafts
+
+    This action removes all saved drafts.
+
+    Never use this tool unless the user clearly requests
+    deletion of every draft.
     """
 
     with open(DRAFT_FILE, "w") as f:
