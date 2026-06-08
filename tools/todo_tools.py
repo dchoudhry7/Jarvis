@@ -1,20 +1,62 @@
+import json
+from pathlib import Path
+
 from langchain_core.tools import tool
 
 from database import conn, cursor
 
 
+TODO_FILE = Path("data/todos.json")
+
+
+def load_todos():
+    if not TODO_FILE.exists():
+        return []
+
+    with open(TODO_FILE, "r") as f:
+        return json.load(f)
+
+
+def save_todos(todos):
+    with open(TODO_FILE, "w") as f:
+        json.dump(todos, f, indent=4)
+
+
 @tool
 def add_todo(task: str) -> str:
     """
-    Add task to todo list.
+    Add a new task to the todo list.
+
+    Use this tool when the user wants to:
+    - add a task
+    - create a todo
+    - remember something to do
+    - save a task
+
+    Args:
+        task: The task to be added.
+
+    Do not use this tool for viewing tasks.
     """
 
+    # SQLite
     cursor.execute(
         "INSERT INTO todos(task) VALUES (?)",
         (task,)
     )
-
     conn.commit()
+
+    # JSON
+    todos = load_todos()
+
+    todos.append(
+        {
+            "id": len(todos) + 1,
+            "task": task
+        }
+    )
+
+    save_todos(todos)
 
     return f"Task added: {task}"
 
@@ -22,19 +64,23 @@ def add_todo(task: str) -> str:
 @tool
 def show_todos() -> str:
     """
-    Show all todo items.
+    Show all saved todo items.
+
+    Use this tool when the user wants to:
+    - see todos
+    - list tasks
+    - show tasks
+    - view todo list
+
+    Do not use this tool for adding tasks.
     """
 
-    cursor.execute(
-        "SELECT task FROM todos"
-    )
+    todos = load_todos()
 
-    rows = cursor.fetchall()
-
-    if not rows:
+    if not todos:
         return "Todo list is empty."
 
     return "\n".join(
-        row[0]
-        for row in rows
+        f"{todo['id']}. {todo['task']}"
+        for todo in todos
     )

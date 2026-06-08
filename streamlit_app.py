@@ -156,11 +156,10 @@ with todo_tab:
         if todos:
 
             for todo in todos:
-
                 st.checkbox(
-                    todo,
+                    todo["task"],
                     value=False,
-                    disabled=True
+                    disabled=False
                 )
 
         else:
