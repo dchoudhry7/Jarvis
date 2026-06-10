@@ -7,7 +7,8 @@ from googleapiclient.discovery import build
 
 
 SCOPES = [
-    "https://www.googleapis.com/auth/gmail.send"
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/calendar"
 ]
 
 TOKEN_FILE = "token.json"

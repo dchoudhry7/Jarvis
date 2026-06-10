@@ -1,10 +1,22 @@
 import json
+
 from pathlib import Path
+
+from datetime import (
+    datetime,
+    timedelta
+)
 
 from langchain_core.tools import tool
 
+from services.calendar_service import (
+    get_calendar_service
+)
 
-CALENDAR_FILE = Path("data/calendar.json")
+
+CALENDAR_FILE = Path(
+    "data/calendar.json"
+)
 
 
 @tool
@@ -15,29 +27,88 @@ def create_event(
 ):
     """
     Create a calendar event.
+
+    Required:
+    - title
+    - date
+    - time
+
+    Use only when all required
+    information is available.
     """
 
-    with open(CALENDAR_FILE, "r") as f:
+    service = get_calendar_service()
+
+    start = datetime.now() + timedelta(
+        hours=1
+    )
+
+    end = start + timedelta(
+        hours=1
+    )
+
+    google_event = {
+        "summary": title,
+
+        "description":
+            f"Date: {date}\n"
+            f"Time: {time}",
+
+        "start": {
+            "dateTime": start.isoformat(),
+            "timeZone": "Asia/Kolkata"
+        },
+
+        "end": {
+            "dateTime": end.isoformat(),
+            "timeZone": "Asia/Kolkata"
+        }
+    }
+
+    created_event = (
+        service.events()
+        .insert(
+            calendarId="primary",
+            body=google_event
+        )
+        .execute()
+    )
+
+    with open(
+        CALENDAR_FILE,
+        "r"
+    ) as f:
+
         events = json.load(f)
 
     event = {
         "id": len(events) + 1,
         "title": title,
         "date": date,
-        "time": time
+        "time": time,
+        "google_link":
+            created_event["htmlLink"]
     }
 
     events.append(event)
 
-    with open(CALENDAR_FILE, "w") as f:
-        json.dump(events, f, indent=4)
+    with open(
+        CALENDAR_FILE,
+        "w"
+    ) as f:
+
+        json.dump(
+            events,
+            f,
+            indent=4
+        )
 
     return (
         f"Event created successfully.\n\n"
-        f"ID: {event['id']}\n"
         f"Title: {title}\n"
         f"Date: {date}\n"
-        f"Time: {time}"
+        f"Time: {time}\n\n"
+        f"Google Calendar event created."
     )
 
 
@@ -47,7 +118,11 @@ def show_events():
     Show all calendar events.
     """
 
-    with open(CALENDAR_FILE, "r") as f:
+    with open(
+        CALENDAR_FILE,
+        "r"
+    ) as f:
+
         events = json.load(f)
 
     if not events:
@@ -56,6 +131,7 @@ def show_events():
     result = []
 
     for event in events:
+
         result.append(
             f"""
 ID: {event['id']}
@@ -67,13 +143,20 @@ Time: {event['time']}
 
     return "\n".join(result)
 
+
 @tool
-def delete_event(event_id: int):
+def delete_event(
+    event_id: int
+):
     """
     Delete an event by ID.
     """
 
-    with open(CALENDAR_FILE, "r") as f:
+    with open(
+        CALENDAR_FILE,
+        "r"
+    ) as f:
+
         events = json.load(f)
 
     original_count = len(events)
@@ -85,15 +168,33 @@ def delete_event(event_id: int):
     ]
 
     if len(events) == original_count:
-        return f"No event found with ID {event_id}."
+        return (
+            f"No event found "
+            f"with ID {event_id}."
+        )
 
-    for idx, event in enumerate(events, start=1):
+    for idx, event in enumerate(
+        events,
+        start=1
+    ):
         event["id"] = idx
 
-    with open(CALENDAR_FILE, "w") as f:
-        json.dump(events, f, indent=4)
+    with open(
+        CALENDAR_FILE,
+        "w"
+    ) as f:
 
-    return f"Event {event_id} deleted successfully."
+        json.dump(
+            events,
+            f,
+            indent=4
+        )
+
+    return (
+        f"Event {event_id} "
+        f"deleted successfully."
+    )
+
 
 @tool
 def delete_all_events():
@@ -101,7 +202,18 @@ def delete_all_events():
     Delete all calendar events.
     """
 
-    with open(CALENDAR_FILE, "w") as f:
-        json.dump([], f, indent=4)
+    with open(
+        CALENDAR_FILE,
+        "w"
+    ) as f:
 
-    return "All calendar events deleted successfully."
+        json.dump(
+            [],
+            f,
+            indent=4
+        )
+
+    return (
+        "All calendar events "
+        "deleted successfully."
+    )
