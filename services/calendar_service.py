@@ -1,21 +1,16 @@
+"""Google Calendar API service."""
+
 from googleapiclient.discovery import build
 
-from services.gmail_service import (
-    get_gmail_service
-)
+from services.google_auth import get_google_credentials
 
 
 def get_calendar_service():
+    """Build and return the Calendar API service, or None if unavailable."""
 
-    gmail_service = get_gmail_service()
+    creds = get_google_credentials()
 
-    if gmail_service is None:
+    if creds is None:
         return None
 
-    creds = gmail_service._http.credentials
-
-    return build(
-        "calendar",
-        "v3",
-        credentials=creds
-    )
+    return build("calendar", "v3", credentials=creds)

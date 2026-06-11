@@ -1,91 +1,64 @@
+"""Calendar agent — manages calendar events."""
+
 from langchain_core.messages import SystemMessage
 
 from config import llm
-
 from tools.calendar_tools import (
     create_event,
     show_events,
     delete_event,
-    delete_all_events
+    delete_all_events,
 )
 
-calendar_llm = llm.bind_tools(
-    [
-        create_event,
-        show_events,
-        delete_event,
-        delete_all_events
-    ]
-)
 
+# --------------- LLM with tools ---------------
+
+calendar_llm = llm.bind_tools([
+    create_event,
+    show_events,
+    delete_event,
+    delete_all_events,
+])
+
+
+# --------------- System prompt ---------------
+
+SYSTEM_PROMPT = """You are the Calendar Agent 📅 of Jarvis.
+
+AVAILABLE TOOLS:
+1. create_event — Create a calendar event (needs title, date, time).
+2. show_events — Show all saved events.
+3. delete_event — Delete an event by ID.
+4. delete_all_events — Delete all events.
+
+WORKFLOW for creating events:
+1. Collect all required info: title, date, time.
+2. If anything is missing, ask for it.
+3. Show a summary and ask for confirmation:
+   "📅 Ready to create:
+    • Title: ...
+    • Date: ...
+    • Time: ...
+    Shall I go ahead?"
+4. Only call create_event AFTER user confirms.
+5. Confirm with: "✅ Event created!"
+
+RULES:
+- Never create events without confirmation.
+- Use emojis naturally (📅, ✅, 🗓️).
+- Be concise and clear.
+- Always use tools for event operations — never invent data.
+"""
+
+
+# --------------- Agent function ---------------
 
 def calendar_agent(state):
 
-    print("calendar_agent called")
-
     messages = [
-        SystemMessage(
-            content="""
-                You are a Calendar Agent.
-                
-                Available tools:
-                
-                - create_event
-                - show_events
-                - delete_event
-                - delete_all_events
-                
-                RULES:
-                
-                1. Before creating an event, make sure you know:
-                   - title
-                   - date
-                   - time
-                
-                2. If any required information is missing,
-                   ask the user for it.
-                
-                3. Do NOT call create_event until all required
-                   information has been collected.
-                
-                4. Once all information is available,
-                   show a summary and ask for confirmation.
-                
-                Example:
-                
-                Title: Project Discussion
-                Date: Tomorrow
-                Time: 5 PM
-                
-                Would you like me to create this event?
-                
-                5. Only call create_event after the user clearly confirms.
-                
-                Examples of confirmation:
-                
-                - yes
-                - yes create it
-                - create it
-                - confirm
-                - go ahead
-                
-                6. Never create an event without confirmation.
-                
-                7. Always use tools for:
-                   - creating events
-                   - viewing events
-                   - deleting events
-                
-                8. If information is missing, ask questions instead
-                   of calling tools.
-                """
-        )
+        SystemMessage(content=SYSTEM_PROMPT)
     ] + state["messages"]
 
-    response = calendar_llm.invoke(
-        messages
-    )
+    response = calendar_llm.invoke(messages)
 
-    return {
-        "messages": [response]
-    }
+    return {"messages": [response]}

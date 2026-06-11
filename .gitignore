@@ -20,5 +20,7 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Database (local state)
+# Runtime data
 jarvis.db
+data/
+graph.png

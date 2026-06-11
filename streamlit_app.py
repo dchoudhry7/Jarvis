@@ -1,358 +1,385 @@
-import streamlit as st
-import json
+"""
+Jarvis — Multi-Agent Personal Assistant
+Streamlit UI with session-scoped data reset.
+"""
 
+import json
 from pathlib import Path
 
+import streamlit as st
 from langchain_core.messages import HumanMessage
 
 from graph import graph
 
 
-def load_json(file_path):
-
-    path = Path(file_path)
-
-    if not path.exists():
-        return []
-
-    try:
-        with open(path, "r") as f:
-            return json.load(f)
-
-    except:
-        return []
+# ============================================================
+# Page Config
+# ============================================================
 
 st.set_page_config(
     page_title="Jarvis AI",
     page_icon="🤖",
-    layout="wide"
-)
-
-st.title("🤖 Jarvis")
-
-st.caption(
-    "Multi-Agent Personal Assistant powered by LangGraph"
-)
-
-todos = load_json(
-    "data/todos.json"
-)
-
-emails = load_json(
-    "data/email_drafts.json"
-)
-
-events = load_json(
-    "data/calendar.json"
-)
-
-playlists = load_json(
-    "data/playlists.json"
+    layout="centered",
 )
 
 
-col1, col2, col3, col4, col5 = st.columns(5)
+# ============================================================
+# Custom CSS — clean, minimal, Bootstrap-inspired
+# ============================================================
 
-with col1:
-    st.metric(
-        "Agents",
-        "6"
-    )
+st.markdown("""
+<style>
+    /* --- Global --- */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-with col2:
-    st.metric(
-        "Todos",
-        len(todos)
-    )
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
 
-with col3:
-    st.metric(
-        "Emails",
-        len(emails)
-    )
+    /* --- Hide Streamlit branding --- */
+    #MainMenu, footer, header {visibility: hidden;}
 
-with col4:
-    st.metric(
-        "Events",
-        len(events)
-    )
+    /* --- Notice box --- */
+    .notice-box {
+        background: linear-gradient(135deg, #1e3a5f 0%, #1a1a2e 100%);
+        border: 1px solid #2d5a8e;
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        color: #cbd5e1;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    .notice-box strong { color: #60a5fa; }
+    .notice-box a { color: #93c5fd; text-decoration: none; }
+    .notice-box a:hover { text-decoration: underline; }
 
-with col5:
-    st.metric(
-        "Playlists",
-        len(playlists)
-    )
+    /* --- Stat cards --- */
+    .stat-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    .stat-card {
+        flex: 1;
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 10px;
+        padding: 16px;
+        text-align: center;
+    }
+    .stat-card .label {
+        font-size: 12px;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .stat-card .value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #f9fafb;
+    }
 
-chat_tab, todo_tab, email_tab, calendar_tab, spotify_tab = st.tabs(
-    [
-        "💬 Chat",
-        "📝 Todos",
-        "📧 Emails",
-        "📅 Calendar",
-        "🎵 Spotify"
-    ]
-)
+    /* --- Section headers --- */
+    .section-header {
+        font-size: 16px;
+        font-weight: 600;
+        color: #e5e7eb;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #1f2937;
+    }
+
+    /* --- Item cards --- */
+    .item-card {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 8px;
+        padding: 14px 16px;
+        margin-bottom: 8px;
+        color: #d1d5db;
+        font-size: 14px;
+    }
+    .item-card .item-title {
+        font-weight: 600;
+        color: #f3f4f6;
+        margin-bottom: 4px;
+    }
+    .item-card .item-meta {
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    /* --- Empty state --- */
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #4b5563;
+        font-size: 14px;
+    }
+    .empty-state .icon {
+        font-size: 32px;
+        margin-bottom: 8px;
+    }
+
+    /* --- Tabs styling --- */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 4px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# Data File Paths
+# ============================================================
+
+DATA_DIR = Path("data")
+TODO_FILE = DATA_DIR / "todos.json"
+EMAIL_FILE = DATA_DIR / "email_drafts.json"
+CALENDAR_FILE = DATA_DIR / "calendar.json"
+PLAYLIST_FILE = DATA_DIR / "playlists.json"
+PENDING_EMAIL_FILE = DATA_DIR / "pending_email.json"
+PENDING_EVENT_FILE = DATA_DIR / "pending_event.json"
+
+
+# ============================================================
+# Session Reset — fresh data for every new visitor
+# ============================================================
+
+def reset_data_files():
+    """Reset all JSON data files to empty state."""
+    DATA_DIR.mkdir(exist_ok=True)
+
+    for f in [TODO_FILE, EMAIL_FILE, CALENDAR_FILE, PLAYLIST_FILE]:
+        f.write_text("[]")
+
+    for f in [PENDING_EMAIL_FILE, PENDING_EVENT_FILE]:
+        f.write_text("{}")
+
+
+if "initialized" not in st.session_state:
+    st.session_state.initialized = True
+    st.session_state.chat_history = []
+    reset_data_files()
+
+
+# ============================================================
+# Helper — load JSON safely
+# ============================================================
+
+def load_json(path):
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return []
+
+
+# ============================================================
+# Header
+# ============================================================
+
+st.markdown("## 🦾 JARVIS")
+st.caption("Multi-Agent Personal Assistant powered by LangGraph")
+
+
+# ============================================================
+# Notice Box
+# ============================================================
+
+st.markdown("""
+<div class="notice-box">
+    📢 <strong>Want real email & calendar integration?</strong><br>
+    This app uses Google OAuth which requires test-user access.
+    Send a mail to <a href="mailto:dchoudhry999@gmail.com"><strong>dchoudhry999@gmail.com</strong></a>
+    and I'll manually add you as a test user so you can use the full agentic features! 🚀
+</div>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# Stats Row
+# ============================================================
+
+todos = load_json(TODO_FILE)
+emails = load_json(EMAIL_FILE)
+events = load_json(CALENDAR_FILE)
+playlists = load_json(PLAYLIST_FILE)
+
+st.markdown(f"""
+<div class="stat-row">
+    <div class="stat-card">
+        <div class="label">Agents</div>
+        <div class="value">6</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Todos</div>
+        <div class="value">{len(todos)}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Emails</div>
+        <div class="value">{len(emails)}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Events</div>
+        <div class="value">{len(events)}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Playlists</div>
+        <div class="value">{len(playlists)}</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# Tabs
+# ============================================================
+
+chat_tab, todo_tab, email_tab, calendar_tab, spotify_tab = st.tabs([
+    "💬 Chat", "📝 Todos", "📧 Emails", "📅 Calendar", "🎵 Spotify"
+])
+
+
+# -------------------- Chat Tab --------------------
 
 with chat_tab:
+
     if st.button("🗑️ Clear Chat"):
         st.session_state.chat_history = []
+        reset_data_files()
         st.rerun()
 
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-
-
     for role, message in st.session_state.chat_history:
-
         with st.chat_message(role):
             st.markdown(message)
 
-
-    user_input = st.chat_input(
-        "Talk to Jarvis..."
-    )
+    user_input = st.chat_input("Talk to Jarvis...")
 
     if user_input:
-        st.session_state.chat_history.append(
-            ("user", user_input)
-        )
+        st.session_state.chat_history.append(("user", user_input))
 
         result = graph.invoke(
-            {
-                "messages": [
-                    HumanMessage(
-                        content=user_input
-                    )
-                ]
-            },
-            config={
-                "configurable": {
-                    "thread_id": "user_1"
-                }
-            }
+            {"messages": [HumanMessage(content=user_input)]},
+            config={"configurable": {"thread_id": "user_1"}},
         )
 
         response = result["messages"][-1].content
-
-        st.session_state.chat_history.append(
-            ("assistant", response)
-        )
-
+        st.session_state.chat_history.append(("assistant", response))
         st.rerun()
+
+
+# -------------------- Todos Tab --------------------
 
 with todo_tab:
 
-    st.subheader("Todo List")
+    st.markdown('<div class="section-header">📝 Todo List</div>', unsafe_allow_html=True)
 
-    TODO_FILE = Path(
-        "data/todos.json"
-    )
+    todos = load_json(TODO_FILE)
 
-    if TODO_FILE.exists():
-
-        with open(TODO_FILE, "r") as f:
-            todos = json.load(f)
-
-        if todos:
-
-            for todo in todos:
-                st.checkbox(
-                    todo["task"],
-                    value=False,
-                    disabled=False
-                )
-
-        else:
-
-            st.info(
-                "No todos found."
-            )
-
+    if todos:
+        for todo in todos:
+            st.markdown(f"""
+            <div class="item-card">
+                <div class="item-title">☐ {todo.get("task", "")}</div>
+                <div class="item-meta">ID: {todo.get("id", "")}</div>
+            </div>
+            """, unsafe_allow_html=True)
     else:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="icon">📝</div>
+            No todos yet. Ask Jarvis to add one!
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.warning(
-            "todos.json not found."
-        )
+
+# -------------------- Emails Tab --------------------
 
 with email_tab:
 
-    st.subheader("Email Drafts")
+    st.markdown('<div class="section-header">📧 Email Drafts</div>', unsafe_allow_html=True)
 
-    EMAIL_FILE = Path(
-        "data/email_drafts.json"
-    )
+    emails = load_json(EMAIL_FILE)
 
-    if EMAIL_FILE.exists():
+    if emails:
+        for draft in emails:
+            subject = draft.get("subject", "No Subject")
+            recipient = draft.get("recipient", "Unknown")
+            content = draft.get("content", "")
 
-        with open(
-            EMAIL_FILE,
-            "r"
-        ) as f:
-
-            drafts = json.load(f)
-
-        if drafts:
-
-            for draft in drafts:
-
-                subject = draft.get(
-                    "subject",
-                    "No Subject"
-                )
-
-                recipient = draft.get(
-                    "recipient",
-                    "Unknown Recipient"
-                )
-
-                content = draft.get(
-                    "content",
-                    ""
-                )
-
-                with st.expander(
-                    f"📧 {subject}"
-                ):
-
-                    st.write(
-                        f"**Recipient:** {recipient}"
-                    )
-
-                    st.write(
-                        f"**Draft ID:** {draft['id']}"
-                    )
-
-                    st.markdown("---")
-
-                    st.write(content)
-
-        else:
-
-            st.info(
-                "No email drafts found."
-            )
-
+            with st.expander(f"📧 {subject}"):
+                st.markdown(f"**To:** {recipient}")
+                st.markdown(f"**Draft ID:** {draft.get('id', '')}")
+                st.markdown("---")
+                st.write(content)
     else:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="icon">📧</div>
+            No email drafts. Ask Jarvis to draft one!
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.warning(
-            "email_drafts.json not found."
-        )
+
+# -------------------- Calendar Tab --------------------
 
 with calendar_tab:
 
-    st.subheader("Calendar Events")
+    st.markdown('<div class="section-header">📅 Calendar Events</div>', unsafe_allow_html=True)
 
-    CALENDAR_FILE = Path(
-        "data/calendar.json"
-    )
+    events = load_json(CALENDAR_FILE)
 
-    if CALENDAR_FILE.exists():
+    if events:
+        for event in events:
+            title = event.get("title", "Untitled")
+            date = event.get("date", "")
+            time = event.get("time", "")
 
-        with open(
-            CALENDAR_FILE,
-            "r"
-        ) as f:
-
-            events = json.load(f)
-
-        if events:
-
-            calendar_data = []
-
-            for event in events:
-
-                calendar_data.append(
-                    {
-                        "ID": event["id"],
-                        "Title": event["title"],
-                        "Date": event["date"],
-                        "Time": event["time"]
-                    }
-                )
-
-            for event in events:
-                with st.container():
-                    st.markdown(
-                        f"""
-            ### 📅 {event['title']}
-
-            **Date:** {event['date']}
-
-            **Time:** {event['time']}
-            """
-                    )
-
-                    st.markdown("---")
-
-        else:
-
-            st.info(
-                "No calendar events found."
-            )
-
+            st.markdown(f"""
+            <div class="item-card">
+                <div class="item-title">📅 {title}</div>
+                <div class="item-meta">🗓️ {date} &nbsp;•&nbsp; ⏰ {time}</div>
+            </div>
+            """, unsafe_allow_html=True)
     else:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="icon">📅</div>
+            No events yet. Ask Jarvis to create one!
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.warning(
-            "calendar.json not found."
-        )
+
+# -------------------- Spotify Tab --------------------
 
 with spotify_tab:
 
-    st.subheader("Spotify Playlists")
+    st.markdown('<div class="section-header">🎵 Playlists</div>', unsafe_allow_html=True)
 
-    PLAYLIST_FILE = Path(
-        "data/playlists.json"
-    )
+    playlists = load_json(PLAYLIST_FILE)
 
-    if PLAYLIST_FILE.exists():
+    if playlists:
+        for playlist in playlists:
+            name = playlist.get("name", "Unnamed")
+            songs = playlist.get("songs", [])
 
-        with open(
-            PLAYLIST_FILE,
-            "r"
-        ) as f:
-
-            playlists = json.load(f)
-
-        if playlists:
-
-            for playlist in playlists:
-
-                playlist_name = playlist.get(
-                    "name",
-                    "Unnamed Playlist"
-                )
-
-                songs = playlist.get(
-                    "songs",
-                    []
-                )
-
-                with st.expander(
-                    f"🎵 {playlist_name}"
-                ):
-
-                    if songs:
-
-                        for song in songs:
-
-                            st.write(
-                                f"• {song}"
-                            )
-
-                    else:
-
-                        st.info(
-                            "No songs found."
-                        )
-
-        else:
-
-            st.info(
-                "No playlists found."
-            )
-
+            with st.expander(f"🎵 {name}"):
+                if songs:
+                    for song in songs:
+                        st.write(f"• {song}")
+                else:
+                    st.info("No songs in this playlist.")
     else:
-
-        st.warning(
-            "playlists.json not found."
-        )
+        st.markdown("""
+        <div class="empty-state">
+            <div class="icon">🎵</div>
+            No playlists yet. Ask Jarvis to create one!
+        </div>
+        """, unsafe_allow_html=True)
