@@ -9,6 +9,9 @@ def get_calendar_service():
 
     gmail_service = get_gmail_service()
 
+    if gmail_service is None:
+        return None
+
     creds = gmail_service._http.credentials
 
     return build(

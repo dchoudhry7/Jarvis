@@ -225,6 +225,9 @@ def send_email(
 
     service = get_gmail_service()
 
+    if service is None:
+        return "Gmail is not configured. Google OAuth credentials are required to send emails."
+
     message = MIMEText(body)
 
     message["to"] = recipient

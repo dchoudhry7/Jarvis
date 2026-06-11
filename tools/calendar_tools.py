@@ -39,6 +39,9 @@ def create_event(
 
     service = get_calendar_service()
 
+    if service is None:
+        return "Google Calendar is not configured. OAuth credentials are required to create events."
+
     start = datetime.now() + timedelta(
         hours=1
     )
