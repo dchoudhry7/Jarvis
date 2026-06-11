@@ -10,3 +10,10 @@ langchain-core
 
 langchain-groq
 ipython
+
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+
+streamlit
+typing-extensions
