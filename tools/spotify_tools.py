@@ -6,7 +6,6 @@ from pathlib import Path
 from langchain_core.tools import tool
 
 
-# --------------- Storage ---------------
 
 PLAYLIST_FILE = Path("data/playlists.json")
 
@@ -24,7 +23,6 @@ def save_playlists(playlists):
         json.dump(playlists, f, indent=4)
 
 
-# --------------- Tools ---------------
 
 @tool
 def add_song_to_playlist(playlist_name: str, song_name: str):

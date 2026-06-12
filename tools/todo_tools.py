@@ -6,7 +6,6 @@ from pathlib import Path
 from langchain_core.tools import tool
 
 
-# --------------- Storage ---------------
 
 TODO_FILE = Path("data/todos.json")
 
@@ -24,7 +23,6 @@ def save_todos(todos):
         json.dump(todos, f, indent=4)
 
 
-# --------------- Tools ---------------
 
 @tool
 def add_todo(task: str) -> str:

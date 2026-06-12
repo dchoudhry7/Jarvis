@@ -9,7 +9,6 @@ from langchain_core.tools import tool
 from services.calendar_service import get_calendar_service
 
 
-# --------------- Storage ---------------
 
 CALENDAR_FILE = Path("data/calendar.json")
 
@@ -27,7 +26,6 @@ def save_events(events):
         json.dump(events, f, indent=4)
 
 
-# --------------- Tools ---------------
 
 @tool
 def create_event(title: str, date: str, time: str):
@@ -42,7 +40,6 @@ def create_event(title: str, date: str, time: str):
     Use only when all required information is available.
     """
 
-    # Always save to local JSON
     events = load_events()
 
     event = {
@@ -52,7 +49,6 @@ def create_event(title: str, date: str, time: str):
         "time": time,
     }
 
-    # Optionally sync to Google Calendar
     service = get_calendar_service()
 
     if service is not None:
@@ -82,7 +78,7 @@ def create_event(title: str, date: str, time: str):
             event["google_link"] = created["htmlLink"]
 
         except Exception:
-            pass  # Google sync failed, but local save still works
+            pass
 
     events.append(event)
     save_events(events)

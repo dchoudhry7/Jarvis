@@ -16,7 +16,6 @@ from utils.pending_mail import (
 )
 
 
-# --------------- Storage ---------------
 
 DRAFT_FILE = Path("data/email_drafts.json")
 
@@ -34,7 +33,6 @@ def save_drafts(drafts):
         json.dump(drafts, f, indent=4)
 
 
-# --------------- Tools ---------------
 
 @tool
 def draft_email(recipient: str, subject: str, purpose: str):

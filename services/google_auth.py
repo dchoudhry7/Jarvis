@@ -11,7 +11,6 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
 
-# --------------- Constants ---------------
 
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.send",
@@ -22,7 +21,6 @@ TOKEN_FILE = "token.json"
 CREDENTIALS_FILE = "credentials.json"
 
 
-# --------------- Auth Flow ---------------
 
 def get_google_credentials():
     """
@@ -32,13 +30,11 @@ def get_google_credentials():
 
     creds = None
 
-    # Try loading existing token
     if Path(TOKEN_FILE).exists():
         creds = Credentials.from_authorized_user_file(
             TOKEN_FILE, SCOPES
         )
 
-    # Refresh or create credentials
     if not creds or not creds.valid:
 
         if creds and creds.expired and creds.refresh_token:
@@ -51,7 +47,6 @@ def get_google_credentials():
             creds = flow.run_local_server(port=0)
 
         else:
-            # No credentials available (Streamlit Cloud)
             return None
 
         with open(TOKEN_FILE, "w") as token:

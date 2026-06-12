@@ -6,7 +6,6 @@ from pathlib import Path
 from langchain_core.tools import tool
 
 
-# --------------- Storage ---------------
 
 MEMORY_FILE = Path("data/memories.json")
 
@@ -24,7 +23,6 @@ def save_memories(memories):
         json.dump(memories, f, indent=4)
 
 
-# --------------- Tools ---------------
 
 @tool
 def remember(memory: str) -> str:
