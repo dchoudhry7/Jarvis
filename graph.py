@@ -7,7 +7,6 @@ each with their own tool nodes and routing logic.
 
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
-from langgraph.checkpoint.memory import MemorySaver
 
 from state import AgentState
 
@@ -144,5 +143,4 @@ graph_builder.add_edge("chat_agent", END)
 # Compile
 # ============================================================
 
-memory = MemorySaver()
-graph = graph_builder.compile(checkpointer=memory)
+graph = graph_builder.compile()

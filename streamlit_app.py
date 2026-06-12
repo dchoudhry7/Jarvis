@@ -268,7 +268,6 @@ with chat_tab:
 
         result = graph.invoke(
             {"messages": [HumanMessage(content=user_input)]},
-            config={"configurable": {"thread_id": "user_1"}},
         )
 
         response = result["messages"][-1].content
