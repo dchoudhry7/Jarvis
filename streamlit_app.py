@@ -170,7 +170,7 @@ if not st.session_state.chat_history:
         except Exception as e:
             error_msg = str(e)
             if "429" in error_msg or "rate limit" in error_msg.lower():
-                response_text = "Groq API Rate Limit Reached: The tokens-per-day (TPD) limit for the LLM has been reached. Please try again in a few minutes! 🚀"
+                response_text = "Groq API Rate Limit Reached: The tokens-per-day (TPD) limit for the LLM has been reached. Please try again in a few minutes!"
             else:
                 response_text = f"Error invoking Jarvis: {error_msg}. Please check your connection or try again."
                 
@@ -231,7 +231,7 @@ else:
         except Exception as e:
             error_msg = str(e)
             if "429" in error_msg or "rate limit" in error_msg.lower():
-                response_text = "Groq API Rate Limit Reached: The tokens-per-day (TPD) limit for the LLM has been reached. Please try again in a few minutes! 🚀"
+                response_text = "Groq API Rate Limit Reached: The tokens-per-day (TPD) limit for the LLM has been reached. Please try again in a few minutes!"
             else:
                 response_text = f"Error invoking Jarvis: {error_msg}. Please check your connection or try again."
                 
