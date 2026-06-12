@@ -31,9 +31,11 @@ PENDING_EVENT_FILE = DATA_DIR / "pending_event.json"
 def reset_data_files():
     DATA_DIR.mkdir(exist_ok=True)
     for f in [TODO_FILE, EMAIL_FILE, CALENDAR_FILE, PLAYLIST_FILE, MEMORY_FILE]:
-        f.write_text("[]")
+        if not f.exists():
+            f.write_text("[]")
     for f in [PENDING_EMAIL_FILE, PENDING_EVENT_FILE]:
-        f.write_text("{}")
+        if not f.exists():
+            f.write_text("{}")
 
 if "initialized" not in st.session_state:
     st.session_state.initialized = True
@@ -434,8 +436,10 @@ elif st.session_state.active_page == "Email Agent":
     st.subheader("Email Agent Page")
     drafts = load_json(EMAIL_FILE)
     if drafts:
-        df = pd.DataFrame(drafts)
-        st.dataframe(df, use_container_width=True)
+        for d in drafts:
+            with st.expander(f"{d.get('subject', 'No Subject')}"):
+                st.write(f"**To:** {d.get('recipient', '')}")
+                st.write(d.get("content", ""))
     else:
         st.info("No email drafts found.")
         
