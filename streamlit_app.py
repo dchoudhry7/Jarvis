@@ -75,7 +75,6 @@ with chat_tab:
     if st.button("🗑️ Clear Chat"):
         st.session_state.chat_history = []
         st.session_state.thread_id = str(uuid.uuid4())
-        reset_data_files()
         st.rerun()
 
     for role, message in st.session_state.chat_history:
