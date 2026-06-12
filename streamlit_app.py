@@ -8,7 +8,7 @@ from graph import graph
 
 st.set_page_config(
     page_title="Jarvis AI",
-    page_icon="🤖",
+    page_icon=":material/rocket:",
     layout="centered",
 )
 
@@ -77,12 +77,12 @@ def render_chat_message(role, text):
         )
 
 with st.sidebar:
-    st.title(":material/terminal: JARVIS")
+    st.title("**JARVIS**")
     st.caption("Multi-Agent Personal Assistant powered by LangGraph")
     st.markdown("---")
     
     with st.expander("Todos", icon=":material/task:", expanded=True):
-        st.write("**:green[Active Tasks]**")
+        st.write("**Active Tasks**")
         todos = load_json(TODO_FILE)
         if todos:
             for todo in todos:
@@ -91,7 +91,7 @@ with st.sidebar:
             st.info("No todos yet.")
             
     with st.expander("Calendar Events", icon=":material/calendar_today:", expanded=False):
-        st.write("**:blue[Scheduled Events]**")
+        st.write("**Scheduled Events**")
         events = load_json(CALENDAR_FILE)
         if events:
             for event in events:
@@ -101,7 +101,7 @@ with st.sidebar:
             st.info("No events scheduled.")
             
     with st.expander("Email Drafts", icon=":material/email:", expanded=False):
-        st.write("**:orange[Pending Mail]**")
+        st.write("**Pending Mail**")
         emails = load_json(EMAIL_FILE)
         if emails:
             for draft in emails:
@@ -112,7 +112,7 @@ with st.sidebar:
             st.info("No email drafts.")
 
     with st.expander("Spotify Playlists", icon=":material/music_note:", expanded=False):
-        st.write("**:red[Saved Music]**")
+        st.write("**Saved Music**")
         playlists = load_json(PLAYLIST_FILE)
         if playlists:
             for playlist in playlists:
@@ -125,7 +125,7 @@ with st.sidebar:
         "**Want real email & calendar integration?** "
         "This app uses Google OAuth which requires test-user access. "
         "Send a mail to **dchoudhry999@gmail.com** "
-        "and I'll manually add you as a test user! :material/rocket:",
+        "and I'll manually add you as a test user!",
         icon=":material/info:"
     )
 
@@ -170,9 +170,9 @@ if not st.session_state.chat_history:
         except Exception as e:
             error_msg = str(e)
             if "429" in error_msg or "rate limit" in error_msg.lower():
-                response_text = "⚠️ **Groq API Rate Limit Reached:** The tokens-per-day (TPD) limit for the LLM has been reached. Please try again in a few minutes! 🚀"
+                response_text = "Groq API Rate Limit Reached: The tokens-per-day (TPD) limit for the LLM has been reached. Please try again in a few minutes! 🚀"
             else:
-                response_text = f"⚠️ **Error invoking Jarvis:** {error_msg}. Please check your connection or try again."
+                response_text = f"Error invoking Jarvis: {error_msg}. Please check your connection or try again."
                 
         words = response_text.split(" ")
         current_text = ""
@@ -231,9 +231,9 @@ else:
         except Exception as e:
             error_msg = str(e)
             if "429" in error_msg or "rate limit" in error_msg.lower():
-                response_text = "⚠️ **Groq API Rate Limit Reached:** The tokens-per-day (TPD) limit for the LLM has been reached. Please try again in a few minutes! 🚀"
+                response_text = "Groq API Rate Limit Reached: The tokens-per-day (TPD) limit for the LLM has been reached. Please try again in a few minutes! 🚀"
             else:
-                response_text = f"⚠️ **Error invoking Jarvis:** {error_msg}. Please check your connection or try again."
+                response_text = f"Error invoking Jarvis: {error_msg}. Please check your connection or try again."
                 
         words = response_text.split(" ")
         current_text = ""
