@@ -1,171 +1,126 @@
+"""Email tools — draft, send, and manage emails."""
+
 import json
 import base64
-
 from pathlib import Path
+from email.mime.text import MIMEText
 
 from langchain_core.tools import tool
 
 from config import llm
-
-from email.mime.text import MIMEText
-
-from services.gmail_service import (
-    get_gmail_service
-)
-
+from services.gmail_service import get_gmail_service
 from utils.pending_mail import (
     save_pending_email,
     clear_pending_email,
-    load_pending_email
+    load_pending_email,
 )
+
+
+# --------------- Storage ---------------
 
 DRAFT_FILE = Path("data/email_drafts.json")
 
 
+def load_drafts():
+    if not DRAFT_FILE.exists():
+        return []
+    with open(DRAFT_FILE, "r") as f:
+        return json.load(f)
+
+
+def save_drafts(drafts):
+    DRAFT_FILE.parent.mkdir(exist_ok=True)
+    with open(DRAFT_FILE, "w") as f:
+        json.dump(drafts, f, indent=4)
+
+
+# --------------- Tools ---------------
+
 @tool
-def draft_email(
-    recipient: str,
-    subject: str,
-    purpose: str
-):
+def draft_email(recipient: str, subject: str, purpose: str):
     """
     Create and save a new email draft.
 
     Args:
         recipient: Person or organization receiving the email.
         subject: Email subject line.
-        purpose: Reason for the email. This will be used to generate the content.
+        purpose: Reason for the email — used to generate the content.
 
-    Use this tool when the user wants to:
-    - draft an email
-    - write an email
-    - compose an email
-    - create an email
-    - generate an email
-
-    Required inputs:
-    - recipient
-    - subject
-    - purpose
-
-    Do not use this tool for:
-    - viewing drafts
-    - deleting drafts
-
-    After creating the draft successfully, do not call this tool again
-    unless the user requests another draft.
+    Use when the user wants to draft/write/compose an email.
+    Do not use for viewing or deleting drafts.
+    After creating the draft, do not call this tool again.
     """
 
     prompt = f"""
     Write a professional email.
-
     Recipient: {recipient}
-
     Subject: {subject}
-
-    Purpose:
-    {purpose}
+    Purpose: {purpose}
     """
 
     email_text = llm.invoke(prompt).content
 
-    save_pending_email(
-        recipient,
-        subject,
-        email_text
-    )
+    save_pending_email(recipient, subject, email_text)
 
-    with open(DRAFT_FILE, "r") as f:
-        drafts = json.load(f)
+    drafts = load_drafts()
 
     draft = {
         "id": len(drafts) + 1,
         "recipient": recipient,
         "subject": subject,
-        "content": email_text
+        "content": email_text,
     }
 
     drafts.append(draft)
+    save_drafts(drafts)
 
-    with open(DRAFT_FILE, "w") as f:
-        json.dump(drafts, f, indent=4)
+    return (
+        f"Draft saved successfully.\n\n"
+        f"Draft ID: {draft['id']}\n"
+        f"Subject: {subject}\n\n"
+        f"{email_text}"
+    )
 
-    return f"""
-Draft saved successfully.
-
-Draft ID: {draft['id']}
-Subject: {subject}
-
-{email_text}
-"""
 
 @tool
 def show_email_drafts():
     """
     Display all saved email drafts.
 
-    Use this tool when the user wants to:
-    - see drafts
-    - list drafts
-    - show drafts
-    - view drafts
-    - check saved emails
-
-    Do not use this tool for creating or deleting drafts.
+    Use when the user wants to see/list/view drafts.
+    Do not use for creating or deleting drafts.
     """
-    with open(DRAFT_FILE, "r") as f:
-        drafts = json.load(f)
+
+    drafts = load_drafts()
 
     if not drafts:
         return "No email drafts found."
 
     result = []
-
     for draft in drafts:
-
         result.append(
-            f"""
-Draft ID: {draft['id']}
-
-Recipient: {draft['recipient']}
-
-Subject: {draft['subject']}
-
-Content:
-{draft['content']}
-"""
+            f"Draft ID: {draft['id']}\n"
+            f"Recipient: {draft['recipient']}\n"
+            f"Subject: {draft['subject']}\n"
+            f"Content:\n{draft['content']}"
         )
 
     return "\n\n".join(result)
 
+
 @tool
 def delete_email_draft(draft_id: int):
     """
-    Delete a specific email draft.
+    Delete a specific email draft by ID.
 
-    Use this tool only when the user wants to remove
-    one particular draft and provides the draft ID.
-
-    Examples:
-    - Delete draft 2
-    - Remove draft number 5
-
-    Do not use this tool for:
-    - deleting all drafts
-    - creating drafts
-    - viewing drafts
+    Use only when the user provides a draft ID to delete.
+    Do not use for deleting all drafts.
     """
 
-    with open(DRAFT_FILE, "r") as f:
-        drafts = json.load(f)
-
+    drafts = load_drafts()
     original_count = len(drafts)
 
-    drafts = [
-        draft
-        for draft in drafts
-        if draft["id"] != draft_id
-    ]
+    drafts = [d for d in drafts if d["id"] != draft_id]
 
     if len(drafts) == original_count:
         return f"No draft found with ID {draft_id}."
@@ -173,54 +128,30 @@ def delete_email_draft(draft_id: int):
     for idx, draft in enumerate(drafts, start=1):
         draft["id"] = idx
 
-    with open(DRAFT_FILE, "w") as f:
-        json.dump(drafts, f, indent=4)
+    save_drafts(drafts)
 
     return f"Draft {draft_id} deleted successfully."
+
 
 @tool
 def delete_all_email_drafts():
     """
     Delete every saved email draft.
 
-    Use this tool only when the user explicitly asks to:
-    - delete all drafts
-    - remove all drafts
-    - clear all drafts
-
-    This action removes all saved drafts.
-
-    Never use this tool unless the user clearly requests
-    deletion of every draft.
+    Use only when the user explicitly asks to delete/clear all drafts.
     """
 
-    with open(DRAFT_FILE, "w") as f:
-        json.dump([], f, indent=4)
+    save_drafts([])
 
     return "All email drafts deleted successfully."
 
+
 @tool
-def send_email(
-    recipient: str,
-    subject: str,
-    body: str
-):
+def send_email(recipient: str, subject: str, body: str):
     """
-    Send the most recently drafted email.
+    Send an email via Gmail API.
 
-    Use this tool when the user confirms that a draft
-    should be sent.
-
-    Examples:
-    - send it
-    - send this email
-    - send this mail
-    - yes
-    - yes send it
-    - approve
-    - go ahead
-
-    Do not use this tool unless a draft already exists.
+    Do not use unless a draft already exists.
     """
 
     service = get_gmail_service()
@@ -229,7 +160,6 @@ def send_email(
         return "Gmail is not configured. Google OAuth credentials are required to send emails."
 
     message = MIMEText(body)
-
     message["to"] = recipient
     message["subject"] = subject
 
@@ -239,34 +169,21 @@ def send_email(
 
     service.users().messages().send(
         userId="me",
-        body={
-            "raw": raw_message
-        }
+        body={"raw": raw_message},
     ).execute()
 
-    return (
-        f"Email sent successfully to "
-        f"{recipient}"
-    )
+    return f"Email sent successfully to {recipient}"
+
 
 @tool
 def send_pending_email():
     """
     Send the most recently drafted email.
 
-    IMPORTANT:
-    After this tool executes successfully,
-    the email has already been sent.
+    IMPORTANT: After this tool executes successfully,
+    the email has already been sent. Do NOT call again.
 
-    Do NOT call this tool again.
-
-    Use only when the user explicitly confirms:
-    - yes
-    - send it
-    - send this email
-    - approve
-
-    After successful execution, the task is complete.
+    Use only when the user confirms: yes / send it / approve.
     """
 
     email = load_pending_email()
@@ -274,14 +191,12 @@ def send_pending_email():
     if not email:
         return "No pending email found."
 
-    send_email.invoke(
-        {
-            "recipient": email["recipient"],
-            "subject": email["subject"],
-            "body": email["body"]
-        }
-    )
+    result = send_email.invoke({
+        "recipient": email["recipient"],
+        "subject": email["subject"],
+        "body": email["body"],
+    })
 
     clear_pending_email()
 
-    return "Email sent successfully."
+    return result

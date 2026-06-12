@@ -1,7 +1,30 @@
+"""Memory tools — JSON-only storage."""
+
+import json
+from pathlib import Path
+
 from langchain_core.tools import tool
 
-from database import conn, cursor
 
+# --------------- Storage ---------------
+
+MEMORY_FILE = Path("data/memories.json")
+
+
+def load_memories():
+    if not MEMORY_FILE.exists():
+        return []
+    with open(MEMORY_FILE, "r") as f:
+        return json.load(f)
+
+
+def save_memories(memories):
+    MEMORY_FILE.parent.mkdir(exist_ok=True)
+    with open(MEMORY_FILE, "w") as f:
+        json.dump(memories, f, indent=4)
+
+
+# --------------- Tools ---------------
 
 @tool
 def remember(memory: str) -> str:
@@ -9,12 +32,9 @@ def remember(memory: str) -> str:
     Store important information about the user.
     """
 
-    cursor.execute(
-        "INSERT INTO memories(memory) VALUES (?)",
-        (memory,)
-    )
-
-    conn.commit()
+    memories = load_memories()
+    memories.append({"id": len(memories) + 1, "memory": memory})
+    save_memories(memories)
 
     return f"Memory stored: {memory}"
 
@@ -25,16 +45,12 @@ def recall_memories() -> str:
     Retrieve all stored memories.
     """
 
-    cursor.execute(
-        "SELECT memory FROM memories"
-    )
+    memories = load_memories()
 
-    rows = cursor.fetchall()
-
-    if not rows:
+    if not memories:
         return "No memories found."
 
     return "\n".join(
-        row[0]
-        for row in rows
+        f"{m['id']}. {m['memory']}"
+        for m in memories
     )

@@ -145,6 +145,7 @@ TODO_FILE = DATA_DIR / "todos.json"
 EMAIL_FILE = DATA_DIR / "email_drafts.json"
 CALENDAR_FILE = DATA_DIR / "calendar.json"
 PLAYLIST_FILE = DATA_DIR / "playlists.json"
+MEMORY_FILE = DATA_DIR / "memories.json"
 PENDING_EMAIL_FILE = DATA_DIR / "pending_email.json"
 PENDING_EVENT_FILE = DATA_DIR / "pending_event.json"
 
@@ -157,7 +158,7 @@ def reset_data_files():
     """Reset all JSON data files to empty state."""
     DATA_DIR.mkdir(exist_ok=True)
 
-    for f in [TODO_FILE, EMAIL_FILE, CALENDAR_FILE, PLAYLIST_FILE]:
+    for f in [TODO_FILE, EMAIL_FILE, CALENDAR_FILE, PLAYLIST_FILE, MEMORY_FILE]:
         f.write_text("[]")
 
     for f in [PENDING_EMAIL_FILE, PENDING_EVENT_FILE]:

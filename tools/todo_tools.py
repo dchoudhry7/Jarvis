@@ -1,10 +1,12 @@
+"""Todo tools — JSON-only storage."""
+
 import json
 from pathlib import Path
 
 from langchain_core.tools import tool
 
-from database import conn, cursor
 
+# --------------- Storage ---------------
 
 TODO_FILE = Path("data/todos.json")
 
@@ -12,15 +14,17 @@ TODO_FILE = Path("data/todos.json")
 def load_todos():
     if not TODO_FILE.exists():
         return []
-
     with open(TODO_FILE, "r") as f:
         return json.load(f)
 
 
 def save_todos(todos):
+    TODO_FILE.parent.mkdir(exist_ok=True)
     with open(TODO_FILE, "w") as f:
         json.dump(todos, f, indent=4)
 
+
+# --------------- Tools ---------------
 
 @tool
 def add_todo(task: str) -> str:
@@ -39,22 +43,12 @@ def add_todo(task: str) -> str:
     Do not use this tool for viewing tasks.
     """
 
-    # SQLite
-    cursor.execute(
-        "INSERT INTO todos(task) VALUES (?)",
-        (task,)
-    )
-    conn.commit()
-
-    # JSON
     todos = load_todos()
 
-    todos.append(
-        {
-            "id": len(todos) + 1,
-            "task": task
-        }
-    )
+    todos.append({
+        "id": len(todos) + 1,
+        "task": task,
+    })
 
     save_todos(todos)
 
