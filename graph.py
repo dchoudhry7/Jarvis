@@ -97,3 +97,14 @@ graph_builder.add_edge("chat_agent", END)
 
 memory = MemorySaver()
 graph = graph_builder.compile(checkpointer=memory)
+
+if __name__ == "__main__":
+    try:
+        mermaid = graph.get_graph().draw_mermaid()
+        print(mermaid)
+        png = graph.get_graph().draw_mermaid_png()
+        with open("graph.png", "wb") as f:
+            f.write(png)
+        print("graph.png saved successfully!")
+    except Exception as e:
+        print(f"Mermaid drawing skipped/failed: {e}")
