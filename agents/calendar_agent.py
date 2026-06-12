@@ -1,7 +1,4 @@
-"""Calendar agent — manages calendar events."""
-
 from langchain_core.messages import SystemMessage
-
 from config import llm
 from tools.calendar_tools import (
     create_event,
@@ -10,18 +7,12 @@ from tools.calendar_tools import (
     delete_all_events,
 )
 
-
-# --------------- LLM with tools ---------------
-
 calendar_llm = llm.bind_tools([
     create_event,
     show_events,
     delete_event,
     delete_all_events,
 ])
-
-
-# --------------- System prompt ---------------
 
 SYSTEM_PROMPT = """You are the Calendar Agent 📅 of Jarvis.
 
@@ -50,15 +41,7 @@ RULES:
 - Always use tools for event operations — never invent data.
 """
 
-
-# --------------- Agent function ---------------
-
 def calendar_agent(state):
-
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT)
-    ] + state["messages"]
-
+    messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
     response = calendar_llm.invoke(messages)
-
     return {"messages": [response]}

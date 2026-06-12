@@ -1,7 +1,4 @@
-"""Email agent — manages email drafts and sending."""
-
 from langchain_core.messages import SystemMessage
-
 from config import llm
 from tools.email_tools import (
     draft_email,
@@ -12,9 +9,6 @@ from tools.email_tools import (
     send_pending_email,
 )
 
-
-# --------------- LLM with tools ---------------
-
 email_llm = llm.bind_tools([
     draft_email,
     show_email_drafts,
@@ -23,9 +17,6 @@ email_llm = llm.bind_tools([
     send_email,
     send_pending_email,
 ])
-
-
-# --------------- System prompt ---------------
 
 SYSTEM_PROMPT = """You are the Email Agent 📧 of Jarvis.
 
@@ -50,15 +41,7 @@ RULES:
 - After send_pending_email succeeds, the task is DONE. Do NOT call it again.
 """
 
-
-# --------------- Agent function ---------------
-
 def email_agent(state):
-
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT)
-    ] + state["messages"]
-
+    messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
     response = email_llm.invoke(messages)
-
     return {"messages": [response]}

@@ -1,17 +1,8 @@
-"""Todo agent — manages the task list."""
-
 from langchain_core.messages import SystemMessage
-
 from config import llm
 from tools.todo_tools import add_todo, show_todos
 
-
-# --------------- LLM with tools ---------------
-
 todo_llm = llm.bind_tools([add_todo, show_todos])
-
-
-# --------------- System prompt ---------------
 
 SYSTEM_PROMPT = """You are the Todo Agent 📝 of Jarvis.
 
@@ -27,15 +18,7 @@ RULES:
 - Be concise — one or two sentences max.
 """
 
-
-# --------------- Agent function ---------------
-
 def todo_agent(state):
-
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT)
-    ] + state["messages"]
-
+    messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
     response = todo_llm.invoke(messages)
-
     return {"messages": [response]}

@@ -1,17 +1,8 @@
-"""Memory agent — stores and recalls user information."""
-
 from langchain_core.messages import SystemMessage
-
 from config import llm
 from tools.memory_tools import remember, recall_memories
 
-
-# --------------- LLM with tools ---------------
-
 memory_llm = llm.bind_tools([remember, recall_memories])
-
-
-# --------------- System prompt ---------------
 
 SYSTEM_PROMPT = """You are the Memory Agent 🧠 of Jarvis.
 
@@ -28,15 +19,7 @@ RULES:
 - Be concise and helpful.
 """
 
-
-# --------------- Agent function ---------------
-
 def memory_agent(state):
-
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT)
-    ] + state["messages"]
-
+    messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
     response = memory_llm.invoke(messages)
-
     return {"messages": [response]}

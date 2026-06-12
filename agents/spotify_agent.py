@@ -1,7 +1,4 @@
-"""Spotify agent — manages playlists and songs."""
-
 from langchain_core.messages import SystemMessage
-
 from config import llm
 from tools.spotify_tools import (
     add_song_to_playlist,
@@ -10,18 +7,12 @@ from tools.spotify_tools import (
     delete_playlist,
 )
 
-
-# --------------- LLM with tools ---------------
-
 spotify_llm = llm.bind_tools([
     add_song_to_playlist,
     show_playlists,
     remove_song_from_playlist,
     delete_playlist,
 ])
-
-
-# --------------- System prompt ---------------
 
 SYSTEM_PROMPT = """You are the Spotify Agent 🎵 of Jarvis.
 
@@ -39,15 +30,7 @@ RULES:
 - Be concise and friendly.
 """
 
-
-# --------------- Agent function ---------------
-
 def spotify_agent(state):
-
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT)
-    ] + state["messages"]
-
+    messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
     response = spotify_llm.invoke(messages)
-
     return {"messages": [response]}

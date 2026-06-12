@@ -1,9 +1,5 @@
-"""Chat agent — handles general conversation."""
-
 from langchain_core.messages import SystemMessage
-
 from config import llm
-
 
 SYSTEM_PROMPT = """You are Jarvis 🤖, a friendly and helpful personal assistant.
 
@@ -16,13 +12,7 @@ RULES:
 - Keep responses short — no more than 2-3 sentences for simple questions.
 """
 
-
 def chat_agent(state):
-
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT)
-    ] + state["messages"]
-
+    messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
     response = llm.invoke(messages)
-
     return {"messages": [response]}
