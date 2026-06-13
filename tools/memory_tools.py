@@ -7,43 +7,53 @@ from langchain_core.tools import tool
 
 
 
-MEMORY_FILE = Path("data/memories.json")
+from langchain_core.runnables import RunnableConfig
+
+def get_memory_file(config: RunnableConfig = None) -> Path:
+    thread_id = None
+    if config:
+        thread_id = config.get("configurable", {}).get("thread_id")
+    if thread_id:
+        return Path("data") / thread_id / "memories.json"
+    return Path("data/memories.json")
 
 
-def load_memories():
-    if not MEMORY_FILE.exists():
+def load_memories(config: RunnableConfig = None):
+    memory_file = get_memory_file(config)
+    if not memory_file.exists():
         return []
-    with open(MEMORY_FILE, "r") as f:
+    with open(memory_file, "r") as f:
         return json.load(f)
 
 
-def save_memories(memories):
-    MEMORY_FILE.parent.mkdir(exist_ok=True)
-    with open(MEMORY_FILE, "w") as f:
+def save_memories(memories, config: RunnableConfig = None):
+    memory_file = get_memory_file(config)
+    memory_file.parent.mkdir(exist_ok=True, parents=True)
+    with open(memory_file, "w") as f:
         json.dump(memories, f, indent=4)
 
 
 
 @tool
-def remember(memory: str) -> str:
+def remember(memory: str, config: RunnableConfig = None) -> str:
     """
     Store important information about the user.
     """
 
-    memories = load_memories()
+    memories = load_memories(config)
     memories.append({"id": len(memories) + 1, "memory": memory})
-    save_memories(memories)
+    save_memories(memories, config)
 
     return f"Memory stored: {memory}"
 
 
 @tool
-def recall_memories() -> str:
+def recall_memories(config: RunnableConfig = None) -> str:
     """
     Retrieve all stored memories.
     """
 
-    memories = load_memories()
+    memories = load_memories(config)
 
     if not memories:
         return "No memories found."
@@ -52,3 +62,4 @@ def recall_memories() -> str:
         f"{m['id']}. {m['memory']}"
         for m in memories
     )
+

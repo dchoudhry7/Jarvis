@@ -31,14 +31,15 @@ WORKFLOW for creating events:
     • Date: ...
     • Time: ...
     Shall I go ahead?"
-4. Only call create_event AFTER user confirms.
-5. Confirm with: "Event created!"
+4. Once the user confirms (e.g., says "yes", "go ahead", "sure", etc.), you MUST immediately call the `create_event` tool with the confirmed title, date, and time.
+5. After the `create_event` tool executes and returns, you should confirm with the user that the event was created.
 
 RULES:
 - Never create events without confirmation.
 - Do not use any emojis in your response.
 - Be concise and clear.
 - Always use tools for event operations — never invent data.
+- When the user confirms, call the `create_event` tool. Do not just say you will do it; you must call the tool!
 """
 
 def calendar_agent(state):

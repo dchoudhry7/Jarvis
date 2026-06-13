@@ -17,25 +17,35 @@ from utils.pending_mail import (
 
 
 
-DRAFT_FILE = Path("data/email_drafts.json")
+from langchain_core.runnables import RunnableConfig
+
+def get_draft_file(config: RunnableConfig = None) -> Path:
+    thread_id = None
+    if config:
+        thread_id = config.get("configurable", {}).get("thread_id")
+    if thread_id:
+        return Path("data") / thread_id / "email_drafts.json"
+    return Path("data/email_drafts.json")
 
 
-def load_drafts():
-    if not DRAFT_FILE.exists():
+def load_drafts(config: RunnableConfig = None):
+    draft_file = get_draft_file(config)
+    if not draft_file.exists():
         return []
-    with open(DRAFT_FILE, "r") as f:
+    with open(draft_file, "r") as f:
         return json.load(f)
 
 
-def save_drafts(drafts):
-    DRAFT_FILE.parent.mkdir(exist_ok=True)
-    with open(DRAFT_FILE, "w") as f:
+def save_drafts(drafts, config: RunnableConfig = None):
+    draft_file = get_draft_file(config)
+    draft_file.parent.mkdir(exist_ok=True, parents=True)
+    with open(draft_file, "w") as f:
         json.dump(drafts, f, indent=4)
 
 
 
 @tool
-def draft_email(recipient: str, subject: str, purpose: str):
+def draft_email(recipient: str, subject: str, purpose: str, config: RunnableConfig = None):
     """
     Create and save a new email draft.
 
@@ -50,7 +60,7 @@ def draft_email(recipient: str, subject: str, purpose: str):
     """
 
     prompt = f"""
-    Write a professional email.
+    Write a professional email. Do not use any emojis in the email body or subject.
     Recipient: {recipient}
     Subject: {subject}
     Purpose: {purpose}
@@ -58,9 +68,9 @@ def draft_email(recipient: str, subject: str, purpose: str):
 
     email_text = llm.invoke(prompt).content
 
-    save_pending_email(recipient, subject, email_text)
+    save_pending_email(recipient, subject, email_text, config=config)
 
-    drafts = load_drafts()
+    drafts = load_drafts(config)
 
     draft = {
         "id": len(drafts) + 1,
@@ -70,7 +80,7 @@ def draft_email(recipient: str, subject: str, purpose: str):
     }
 
     drafts.append(draft)
-    save_drafts(drafts)
+    save_drafts(drafts, config)
 
     return (
         f"Draft saved successfully.\n\n"
@@ -81,7 +91,7 @@ def draft_email(recipient: str, subject: str, purpose: str):
 
 
 @tool
-def show_email_drafts():
+def show_email_drafts(config: RunnableConfig = None):
     """
     Display all saved email drafts.
 
@@ -89,7 +99,7 @@ def show_email_drafts():
     Do not use for creating or deleting drafts.
     """
 
-    drafts = load_drafts()
+    drafts = load_drafts(config)
 
     if not drafts:
         return "No email drafts found."
@@ -107,7 +117,7 @@ def show_email_drafts():
 
 
 @tool
-def delete_email_draft(draft_id: int):
+def delete_email_draft(draft_id: int, config: RunnableConfig = None):
     """
     Delete a specific email draft by ID.
 
@@ -115,7 +125,7 @@ def delete_email_draft(draft_id: int):
     Do not use for deleting all drafts.
     """
 
-    drafts = load_drafts()
+    drafts = load_drafts(config)
     original_count = len(drafts)
 
     drafts = [d for d in drafts if d["id"] != draft_id]
@@ -126,26 +136,26 @@ def delete_email_draft(draft_id: int):
     for idx, draft in enumerate(drafts, start=1):
         draft["id"] = idx
 
-    save_drafts(drafts)
+    save_drafts(drafts, config)
 
     return f"Draft {draft_id} deleted successfully."
 
 
 @tool
-def delete_all_email_drafts():
+def delete_all_email_drafts(config: RunnableConfig = None):
     """
     Delete every saved email draft.
 
     Use only when the user explicitly asks to delete/clear all drafts.
     """
 
-    save_drafts([])
+    save_drafts([], config)
 
     return "All email drafts deleted successfully."
 
 
 @tool
-def send_email(recipient: str, subject: str, body: str):
+def send_email(recipient: str, subject: str, body: str, config: RunnableConfig = None):
     """
     Send an email via Gmail API.
 
@@ -174,7 +184,7 @@ def send_email(recipient: str, subject: str, body: str):
 
 
 @tool
-def send_pending_email():
+def send_pending_email(config: RunnableConfig = None):
     """
     Send the most recently drafted email.
 
@@ -184,7 +194,7 @@ def send_pending_email():
     Use only when the user confirms: yes / send it / approve.
     """
 
-    email = load_pending_email()
+    email = load_pending_email(config)
 
     if not email:
         return "No pending email found."
@@ -193,8 +203,9 @@ def send_pending_email():
         "recipient": email["recipient"],
         "subject": email["subject"],
         "body": email["body"],
-    })
+    }, config=config)
 
-    clear_pending_email()
+    clear_pending_email(config)
 
     return result
+

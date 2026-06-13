@@ -7,25 +7,35 @@ from langchain_core.tools import tool
 
 
 
-TODO_FILE = Path("data/todos.json")
+from langchain_core.runnables import RunnableConfig
+
+def get_todo_file(config: RunnableConfig = None) -> Path:
+    thread_id = None
+    if config:
+        thread_id = config.get("configurable", {}).get("thread_id")
+    if thread_id:
+        return Path("data") / thread_id / "todos.json"
+    return Path("data/todos.json")
 
 
-def load_todos():
-    if not TODO_FILE.exists():
+def load_todos(config: RunnableConfig = None):
+    todo_file = get_todo_file(config)
+    if not todo_file.exists():
         return []
-    with open(TODO_FILE, "r") as f:
+    with open(todo_file, "r") as f:
         return json.load(f)
 
 
-def save_todos(todos):
-    TODO_FILE.parent.mkdir(exist_ok=True)
-    with open(TODO_FILE, "w") as f:
+def save_todos(todos, config: RunnableConfig = None):
+    todo_file = get_todo_file(config)
+    todo_file.parent.mkdir(exist_ok=True, parents=True)
+    with open(todo_file, "w") as f:
         json.dump(todos, f, indent=4)
 
 
 
 @tool
-def add_todo(task: str) -> str:
+def add_todo(task: str, config: RunnableConfig = None) -> str:
     """
     Add a new task to the todo list.
 
@@ -41,20 +51,20 @@ def add_todo(task: str) -> str:
     Do not use this tool for viewing tasks.
     """
 
-    todos = load_todos()
+    todos = load_todos(config)
 
     todos.append({
         "id": len(todos) + 1,
         "task": task,
     })
 
-    save_todos(todos)
+    save_todos(todos, config)
 
     return f"Task added: {task}"
 
 
 @tool
-def show_todos() -> str:
+def show_todos(config: RunnableConfig = None) -> str:
     """
     Show all saved todo items.
 
@@ -67,7 +77,7 @@ def show_todos() -> str:
     Do not use this tool for adding tasks.
     """
 
-    todos = load_todos()
+    todos = load_todos(config)
 
     if not todos:
         return "Todo list is empty."
@@ -76,3 +86,4 @@ def show_todos() -> str:
         f"{todo['id']}. {todo['task']}"
         for todo in todos
     )
+

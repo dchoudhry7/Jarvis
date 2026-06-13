@@ -19,30 +19,55 @@ st.set_page_config(
     layout="centered",
 )
 
-DATA_DIR = Path("data")
-TODO_FILE = DATA_DIR / "todos.json"
-EMAIL_FILE = DATA_DIR / "email_drafts.json"
-CALENDAR_FILE = DATA_DIR / "calendar.json"
-PLAYLIST_FILE = DATA_DIR / "playlists.json"
-MEMORY_FILE = DATA_DIR / "memories.json"
-PENDING_EMAIL_FILE = DATA_DIR / "pending_email.json"
-PENDING_EVENT_FILE = DATA_DIR / "pending_event.json"
+def get_todo_file():
+    return Path("data") / st.session_state.thread_id / "todos.json"
 
-def reset_data_files():
-    DATA_DIR.mkdir(exist_ok=True)
-    for f in [TODO_FILE, EMAIL_FILE, CALENDAR_FILE, PLAYLIST_FILE, MEMORY_FILE]:
+def get_email_file():
+    return Path("data") / st.session_state.thread_id / "email_drafts.json"
+
+def get_calendar_file():
+    return Path("data") / st.session_state.thread_id / "calendar.json"
+
+def get_playlist_file():
+    return Path("data") / st.session_state.thread_id / "playlists.json"
+
+def get_memory_file():
+    return Path("data") / st.session_state.thread_id / "memories.json"
+
+def get_pending_email_file():
+    return Path("data") / st.session_state.thread_id / "pending_email.json"
+
+def get_pending_event_file():
+    return Path("data") / st.session_state.thread_id / "pending_event.json"
+
+def get_task_log_file():
+    return Path("data") / st.session_state.thread_id / "ai_tasks_log.json"
+
+def reset_data_files(thread_id):
+    session_dir = Path("data") / thread_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+    for name in ["todos.json", "email_drafts.json", "calendar.json", "playlists.json", "memories.json"]:
+        f = session_dir / name
         if not f.exists():
             f.write_text("[]")
-    for f in [PENDING_EMAIL_FILE, PENDING_EVENT_FILE]:
+    for name in ["pending_email.json", "pending_event.json"]:
+        f = session_dir / name
         if not f.exists():
             f.write_text("{}")
+
+if "session_id" in st.query_params:
+    st.session_state.thread_id = st.query_params["session_id"]
+else:
+    if "thread_id" not in st.session_state:
+        st.session_state.thread_id = str(uuid.uuid4())
+    st.query_params["session_id"] = st.session_state.thread_id
 
 if "initialized" not in st.session_state:
     st.session_state.initialized = True
     st.session_state.chat_history = []
-    st.session_state.thread_id = str(uuid.uuid4())
     st.session_state.active_page = "Chat"
-    reset_data_files()
+    reset_data_files(st.session_state.thread_id)
+
 
 def load_json(path):
     try:
@@ -97,8 +122,8 @@ def record_task_log(tool_name, args):
         desc = f"Stored memory: {args.get('memory', '')}"
     else:
         desc = f"Executed {tool_name}"
-    log_file = Path("data/ai_tasks_log.json")
-    log_file.parent.mkdir(exist_ok=True)
+    log_file = get_task_log_file()
+    log_file.parent.mkdir(exist_ok=True, parents=True)
     logs = []
     if log_file.exists():
         try:
@@ -160,11 +185,22 @@ with st.sidebar:
         st.session_state.active_page = "Chat"
         st.rerun()
 
+    col_clear, col_new = st.columns(2)
+    with col_clear:
+        if st.button("Clear Chat", icon=":material/delete:", use_container_width=True, key="sb_clear_chat"):
+            st.session_state.chat_history = []
+            st.rerun()
+    with col_new:
+        if st.button("New Session", icon=":material/add:", use_container_width=True, key="sb_new_session"):
+            st.session_state.clear()
+            st.query_params.clear()
+            st.rerun()
+
     st.markdown("---")
 
     with st.expander("Todos", icon=":material/task:", expanded=True):
         st.write("**Active Tasks**")
-        todos = load_json(TODO_FILE)
+        todos = load_json(get_todo_file())
         if todos:
             for todo in todos:
                 st.write(f"- {todo.get('task', '')}")
@@ -176,7 +212,7 @@ with st.sidebar:
             
     with st.expander("Calendar Events", icon=":material/calendar_today:", expanded=False):
         st.write("**Scheduled Events**")
-        events = load_json(CALENDAR_FILE)
+        events = load_json(get_calendar_file())
         if events:
             for event in events:
                 st.write(f"**{event.get('title', 'Untitled')}**")
@@ -189,7 +225,7 @@ with st.sidebar:
             
     with st.expander("Email Drafts", icon=":material/email:", expanded=False):
         st.write("**Pending Mail**")
-        emails = load_json(EMAIL_FILE)
+        emails = load_json(get_email_file())
         if emails:
             for draft in emails:
                 st.write(f"**To:** {draft.get('recipient', 'Unknown')}")
@@ -203,7 +239,7 @@ with st.sidebar:
 
     with st.expander("Spotify Playlists", icon=":material/music_note:", expanded=False):
         st.write("**Saved Music**")
-        playlists = load_json(PLAYLIST_FILE)
+        playlists = load_json(get_playlist_file())
         if playlists:
             for playlist in playlists:
                 st.write(f"**{playlist.get('name', 'Unnamed')}** ({len(playlist.get('songs', []))} songs)")
@@ -215,7 +251,7 @@ with st.sidebar:
 
     with st.expander("Stored Memories", icon=":material/psychology:", expanded=False):
         st.write("**Recall Info**")
-        memories = load_json(MEMORY_FILE)
+        memories = load_json(get_memory_file())
         if memories:
             for memory in memories:
                 st.write(f"- {memory.get('memory', '')}")
@@ -312,15 +348,7 @@ if st.session_state.active_page == "Chat":
             st.rerun()
 
     else:
-        col_title, col_reset = st.columns([0.8, 0.2])
-        with col_title:
-            st.subheader("Chat with Jarvis")
-        with col_reset:
-            if st.button("Clear Chat", icon=":material/delete:", use_container_width=True):
-                st.session_state.chat_history = []
-                st.session_state.thread_id = str(uuid.uuid4())
-                st.rerun()
-                
+        st.subheader("Chat with Jarvis")
         st.markdown("---")
 
         for role, message in st.session_state.chat_history:
@@ -378,10 +406,10 @@ if st.session_state.active_page == "Chat":
 
 elif st.session_state.active_page == "Todo Agent":
     st.subheader("Todo Agent Page")
-    todos = load_json(TODO_FILE)
+    todos = load_json(get_todo_file())
     if todos:
         df = pd.DataFrame(todos)
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
     else:
         st.info("No todos found.")
     
@@ -390,17 +418,17 @@ elif st.session_state.active_page == "Todo Agent":
     new_task = st.text_input("Task Description", key="new_todo_task_input")
     if st.button("Add Todo", key="add_todo_btn"):
         if new_task:
-            res = add_todo.invoke({"task": new_task})
+            res = add_todo.invoke({"task": new_task}, config={"configurable": {"thread_id": st.session_state.thread_id}})
             record_task_log("add_todo", {"task": new_task})
             st.success(res)
             st.rerun()
 
 elif st.session_state.active_page == "Calendar Agent":
     st.subheader("Calendar Agent Page")
-    events = load_json(CALENDAR_FILE)
+    events = load_json(get_calendar_file())
     if events:
         df = pd.DataFrame(events)
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
     else:
         st.info("No events found.")
     
@@ -411,7 +439,7 @@ elif st.session_state.active_page == "Calendar Agent":
     c_time = st.text_input("Time (e.g. HH:MM)", key="cal_time_input")
     if st.button("Create Event", key="create_event_btn"):
         if title and c_date and c_time:
-            res = create_event.invoke({"title": title, "date": c_date, "time": c_time})
+            res = create_event.invoke({"title": title, "date": c_date, "time": c_time}, config={"configurable": {"thread_id": st.session_state.thread_id}})
             record_task_log("create_event", {"title": title, "date": c_date, "time": c_time})
             st.success(res)
             st.rerun()
@@ -420,21 +448,21 @@ elif st.session_state.active_page == "Calendar Agent":
     st.write("### Delete Event")
     del_id = st.number_input("Event ID to Delete", min_value=1, step=1, key="cal_del_id_input")
     if st.button("Delete Event", key="delete_event_btn"):
-        res = delete_event.invoke({"event_id": int(del_id)})
+        res = delete_event.invoke({"event_id": int(del_id)}, config={"configurable": {"thread_id": st.session_state.thread_id}})
         record_task_log("delete_event", {"event_id": int(del_id)})
         st.success(res)
         st.rerun()
         
     st.write("---")
     if st.button("Delete All Events", key="delete_all_events_btn"):
-        res = delete_all_events.invoke({})
+        res = delete_all_events.invoke({}, config={"configurable": {"thread_id": st.session_state.thread_id}})
         record_task_log("delete_all_events", {})
         st.success(res)
         st.rerun()
 
 elif st.session_state.active_page == "Email Agent":
     st.subheader("Email Agent Page")
-    drafts = load_json(EMAIL_FILE)
+    drafts = load_json(get_email_file())
     if drafts:
         for d in drafts:
             with st.expander(f"{d.get('subject', 'No Subject')}"):
@@ -450,7 +478,7 @@ elif st.session_state.active_page == "Email Agent":
     purpose = st.text_area("Purpose", key="email_pur_input")
     if st.button("Draft Email", key="draft_email_btn"):
         if recipient and subject and purpose:
-            res = draft_email.invoke({"recipient": recipient, "subject": subject, "purpose": purpose})
+            res = draft_email.invoke({"recipient": recipient, "subject": subject, "purpose": purpose}, config={"configurable": {"thread_id": st.session_state.thread_id}})
             record_task_log("draft_email", {"recipient": recipient, "subject": subject, "purpose": purpose})
             st.success(res)
             st.rerun()
@@ -462,7 +490,7 @@ elif st.session_state.active_page == "Email Agent":
     s_body = st.text_area("Body", key="send_email_body_input")
     if st.button("Send Email", key="send_email_btn"):
         if s_recipient and s_subject and s_body:
-            res = send_email.invoke({"recipient": s_recipient, "subject": s_subject, "body": s_body})
+            res = send_email.invoke({"recipient": s_recipient, "subject": s_subject, "body": s_body}, config={"configurable": {"thread_id": st.session_state.thread_id}})
             record_task_log("send_email", {"recipient": s_recipient, "subject": s_subject, "body": s_body})
             st.success(res)
             st.rerun()
@@ -471,26 +499,26 @@ elif st.session_state.active_page == "Email Agent":
     st.write("### Manage Drafts & Pending Emails")
     del_draft_id = st.number_input("Draft ID to Delete", min_value=1, step=1, key="email_del_id_input")
     if st.button("Delete Draft", key="delete_draft_btn"):
-        res = delete_email_draft.invoke({"draft_id": int(del_draft_id)})
+        res = delete_email_draft.invoke({"draft_id": int(del_draft_id)}, config={"configurable": {"thread_id": st.session_state.thread_id}})
         record_task_log("delete_email_draft", {"draft_id": int(del_draft_id)})
         st.success(res)
         st.rerun()
         
     if st.button("Send Pending Email", key="send_pending_email_btn"):
-        res = send_pending_email.invoke({})
+        res = send_pending_email.invoke({}, config={"configurable": {"thread_id": st.session_state.thread_id}})
         record_task_log("send_pending_email", {})
         st.success(res)
         st.rerun()
         
     if st.button("Delete All Email Drafts", key="delete_all_drafts_btn"):
-        res = delete_all_email_drafts.invoke({})
+        res = delete_all_email_drafts.invoke({}, config={"configurable": {"thread_id": st.session_state.thread_id}})
         record_task_log("delete_all_email_drafts", {})
         st.success(res)
         st.rerun()
 
 elif st.session_state.active_page == "Spotify Agent":
     st.subheader("Spotify Agent Page")
-    playlists = load_json(PLAYLIST_FILE)
+    playlists = load_json(get_playlist_file())
     if playlists:
         flat_data = []
         for p in playlists:
@@ -502,7 +530,7 @@ elif st.session_state.active_page == "Spotify Agent":
             else:
                 flat_data.append({"Playlist Name": name, "Song": "(Empty)"})
         df = pd.DataFrame(flat_data)
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
     else:
         st.info("No playlists found.")
         
@@ -512,7 +540,7 @@ elif st.session_state.active_page == "Spotify Agent":
     song_name = st.text_input("Song Name", key="spot_song_add_input")
     if st.button("Add Song", key="add_song_btn"):
         if pl_name and song_name:
-            res = add_song_to_playlist.invoke({"playlist_name": pl_name, "song_name": song_name})
+            res = add_song_to_playlist.invoke({"playlist_name": pl_name, "song_name": song_name}, config={"configurable": {"thread_id": st.session_state.thread_id}})
             record_task_log("add_song_to_playlist", {"playlist_name": pl_name, "song_name": song_name})
             st.success(res)
             st.rerun()
@@ -523,7 +551,7 @@ elif st.session_state.active_page == "Spotify Agent":
     song_rem_name = st.text_input("Song Name", key="spot_song_rem_input")
     if st.button("Remove Song", key="remove_song_btn"):
         if pl_rem_name and song_rem_name:
-            res = remove_song_from_playlist.invoke({"playlist_name": pl_rem_name, "song_name": song_rem_name})
+            res = remove_song_from_playlist.invoke({"playlist_name": pl_rem_name, "song_name": song_rem_name}, config={"configurable": {"thread_id": st.session_state.thread_id}})
             record_task_log("remove_song_from_playlist", {"playlist_name": pl_rem_name, "song_name": song_rem_name})
             st.success(res)
             st.rerun()
@@ -533,17 +561,17 @@ elif st.session_state.active_page == "Spotify Agent":
     pl_del_name = st.text_input("Playlist Name", key="spot_pl_del_input")
     if st.button("Delete Playlist", key="delete_playlist_btn"):
         if pl_del_name:
-            res = delete_playlist.invoke({"playlist_name": pl_del_name})
+            res = delete_playlist.invoke({"playlist_name": pl_del_name}, config={"configurable": {"thread_id": st.session_state.thread_id}})
             record_task_log("delete_playlist", {"playlist_name": pl_del_name})
             st.success(res)
             st.rerun()
 
 elif st.session_state.active_page == "Memory Agent":
     st.subheader("Memory Agent Page")
-    memories = load_json(MEMORY_FILE)
+    memories = load_json(get_memory_file())
     if memories:
         df = pd.DataFrame(memories)
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
     else:
         st.info("No memories stored.")
         
@@ -552,7 +580,7 @@ elif st.session_state.active_page == "Memory Agent":
     memory_text = st.text_area("Memory Content", key="mem_content_input")
     if st.button("Remember", key="remember_btn"):
         if memory_text:
-            res = remember.invoke({"memory": memory_text})
+            res = remember.invoke({"memory": memory_text}, config={"configurable": {"thread_id": st.session_state.thread_id}})
             record_task_log("remember", {"memory": memory_text})
             st.success(res)
             st.rerun()

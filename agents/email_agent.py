@@ -30,7 +30,7 @@ AVAILABLE TOOLS:
 WORKFLOW:
 1. When user wants to write an email → use draft_email.
 2. After drafting, show a preview and ask: "Would you like me to send this?"
-3. On confirmation (yes / send it / approve) → use send_pending_email.
+3. Once the user confirms (e.g., says "yes", "send it", "approve", etc.), you MUST immediately call the `send_pending_email` tool.
 4. After sending, confirm: "Email sent successfully!"
 
 RULES:
@@ -39,6 +39,7 @@ RULES:
 - Do not use any emojis in your response.
 - Be concise and clear in responses.
 - After send_pending_email succeeds, the task is DONE. Do NOT call it again.
+- When the user confirms, you must call the `send_pending_email` tool. Do not just say you will do it; you must call the tool!
 """
 
 def email_agent(state):

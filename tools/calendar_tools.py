@@ -10,25 +10,35 @@ from services.calendar_service import get_calendar_service
 
 
 
-CALENDAR_FILE = Path("data/calendar.json")
+from langchain_core.runnables import RunnableConfig
+
+def get_calendar_file(config: RunnableConfig = None) -> Path:
+    thread_id = None
+    if config:
+        thread_id = config.get("configurable", {}).get("thread_id")
+    if thread_id:
+        return Path("data") / thread_id / "calendar.json"
+    return Path("data/calendar.json")
 
 
-def load_events():
-    if not CALENDAR_FILE.exists():
+def load_events(config: RunnableConfig = None):
+    calendar_file = get_calendar_file(config)
+    if not calendar_file.exists():
         return []
-    with open(CALENDAR_FILE, "r") as f:
+    with open(calendar_file, "r") as f:
         return json.load(f)
 
 
-def save_events(events):
-    CALENDAR_FILE.parent.mkdir(exist_ok=True)
-    with open(CALENDAR_FILE, "w") as f:
+def save_events(events, config: RunnableConfig = None):
+    calendar_file = get_calendar_file(config)
+    calendar_file.parent.mkdir(exist_ok=True, parents=True)
+    with open(calendar_file, "w") as f:
         json.dump(events, f, indent=4)
 
 
 
 @tool
-def create_event(title: str, date: str, time: str):
+def create_event(title: str, date: str, time: str, config: RunnableConfig = None):
     """
     Create a calendar event.
 
@@ -40,7 +50,7 @@ def create_event(title: str, date: str, time: str):
     Use only when all required information is available.
     """
 
-    events = load_events()
+    events = load_events(config)
 
     event = {
         "id": len(events) + 1,
@@ -81,7 +91,7 @@ def create_event(title: str, date: str, time: str):
             pass
 
     events.append(event)
-    save_events(events)
+    save_events(events, config)
 
     google_note = ""
     if "google_link" in event:
@@ -97,10 +107,10 @@ def create_event(title: str, date: str, time: str):
 
 
 @tool
-def show_events():
+def show_events(config: RunnableConfig = None):
     """Show all calendar events."""
 
-    events = load_events()
+    events = load_events(config)
 
     if not events:
         return "No calendar events found."
@@ -118,10 +128,10 @@ def show_events():
 
 
 @tool
-def delete_event(event_id: int):
+def delete_event(event_id: int, config: RunnableConfig = None):
     """Delete an event by ID."""
 
-    events = load_events()
+    events = load_events(config)
     original_count = len(events)
 
     events = [e for e in events if e["id"] != event_id]
@@ -132,15 +142,16 @@ def delete_event(event_id: int):
     for idx, event in enumerate(events, start=1):
         event["id"] = idx
 
-    save_events(events)
+    save_events(events, config)
 
     return f"Event {event_id} deleted successfully."
 
 
 @tool
-def delete_all_events():
+def delete_all_events(config: RunnableConfig = None):
     """Delete all calendar events."""
 
-    save_events([])
+    save_events([], config)
 
     return "All calendar events deleted successfully."
+
