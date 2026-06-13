@@ -85,7 +85,7 @@ def create_event(title: str, date: str, time: str):
 
     google_note = ""
     if "google_link" in event:
-        google_note = "\nAlso synced to Google Calendar! 🔗"
+        google_note = "\nAlso synced to Google Calendar!"
 
     return (
         f"Event created successfully.\n\n"

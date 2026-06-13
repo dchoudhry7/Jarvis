@@ -18,7 +18,7 @@ def supervisor(state):
             for msg in reversed(state["messages"][:-1]):
                 if msg.type == "ai":
                     content = msg.content.lower()
-                    if "calendar" in content or "📅" in content or "schedule" in content:
+                    if "calendar" in content or "schedule" in content:
                         route = "calendar"
                         break
                     elif "email" in content or "draft" in content or "pending email" in content:
